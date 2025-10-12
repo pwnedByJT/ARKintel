@@ -108,7 +108,7 @@ All data is provided by **Studio Wildcard’s official infrastructure**.
 
 ## 📜 License
 
-This project is licensed under the **MIT License** — feel free to modify and expand it for your own communities.
+This project is licensed under the **MIT License**
 
 ---
 
