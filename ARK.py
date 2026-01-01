@@ -87,7 +87,7 @@ async def server(interaction: discord.Interaction, server_number: str):
 
         # Create an embed to display server info
         embed = discord.Embed(
-            title="Official Server | Made by King Hittz",
+            title="Official Server | Made by pwnedByJT",
             color=discord.Color(random.randint(0, 0xFFFFFF))  # Random embed color
         )
         embed.add_field(name="Server Name", value=f"```{matched_server['Name']}```", inline=False)
@@ -156,7 +156,7 @@ async def topserver(interaction: discord.Interaction):
                 inline=False
             )
 
-        embed.set_footer(text="Made by King Hittz")
+        embed.set_footer(text="Made by pwnedByJT")
 
         await interaction.followup.send(embed=embed)
 
