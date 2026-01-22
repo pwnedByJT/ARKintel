@@ -24,6 +24,10 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 if not TOKEN:
     exit("DISCORD_TOKEN not found in the environment variables!")
 
+# --- CONFIGURATION ---
+TARGET_CHANNEL_ID = 1178760002186526780
+# ---------------------
+
 # Set up bot intents (permissions), enabling reading message content
 intents = discord.Intents.default()
 intents.message_content = True
@@ -67,6 +71,16 @@ def fetch_xp_multiplier():
 @bot.tree.command(name="server", description="Check the status of an official ASA server by its number")
 @app_commands.describe(server_number="The number or part of the server name to search for")
 async def server(interaction: discord.Interaction, server_number: str):
+    
+    # --- Check Channel ID ---
+    if interaction.channel_id != TARGET_CHANNEL_ID:
+        await interaction.response.send_message(
+            f"Please use the correct channel: <#{TARGET_CHANNEL_ID}> :t_rex:", 
+            ephemeral=True
+        )
+        return
+    # ------------------------
+
     await interaction.response.defer(thinking=True)  # Let user know we're working on it
 
     try:
@@ -118,6 +132,16 @@ async def server(interaction: discord.Interaction, server_number: str):
 # Slash command to display the top 5 servers based on player count
 @bot.tree.command(name="topserver", description="Show the top 5 official ASA servers by player count")
 async def topserver(interaction: discord.Interaction):
+    
+    # --- Check Channel ID ---
+    if interaction.channel_id != TARGET_CHANNEL_ID:
+        await interaction.response.send_message(
+            f"Please use the correct channel: <#{TARGET_CHANNEL_ID}> :t_rex:", 
+            ephemeral=True
+        )
+        return
+    # ------------------------
+
     await interaction.response.defer(thinking=True)  # Let user know we're processing
 
     try:
