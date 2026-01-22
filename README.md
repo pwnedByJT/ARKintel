@@ -26,6 +26,7 @@ All data is pulled directly from **ARK’s official APIs**, ensuring accurate an
 
 ✅ `/server [number]` — Fetches details for a specific official server.
 ✅ `/topserver` — Displays the top 5 official servers sorted by player count.
+✅ **Channel-Locked** — Commands are restricted to a specific channel to prevent spam.
 ✅ Real-time player, map, and rate information.
 ✅ Pulls live multipliers like **XP rates** from ARK’s dynamic config.
 ✅ Clean, Discord-embedded responses.
@@ -50,14 +51,16 @@ All data is pulled directly from **ARK’s official APIs**, ensuring accurate an
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/KingHittz/ARKintel.git
+git clone [https://github.com/pwnedByJT/ARKintel.git](https://github.com/pwnedByJT/ARKintel.git)
 cd ARKintel
+
 ```
 
 ### 2. Install dependencies
 
 ```bash
 pip install -r requirements.txt
+
 ```
 
 ### 3. Set up your `.env` file
@@ -66,12 +69,27 @@ Create a file named `.env` in the project directory and add your Discord bot tok
 
 ```
 DISCORD_TOKEN=your_discord_bot_token_here
+
 ```
 
-### 4. Run the bot
+### 4. Configure the Channel ID
+
+Open `ARKintel.py` and look for the configuration section near the top:
+
+```python
+# --- CONFIGURATION ---
+TARGET_CHANNEL_ID = 1178760002186526780  # <-- Replace with your Discord Channel ID
+# ---------------------
+
+```
+
+Replace the number with the ID of the channel where you want the bot to be active.
+
+### 5. Run the bot
 
 ```bash
 python ARKintel.py
+
 ```
 
 ---
@@ -98,11 +116,11 @@ All data is provided by **Studio Wildcard’s official infrastructure**.
 
 ## 👑 Author
 
-**Developed by:** Justin Aaron Turner *(King Hittz)*
+**Developed by:** Justin Aaron Turner *(pwnedByJT)*
 
-* 🌐 [Twitch](https://twitch.tv/KingHittz)
-* 🐦 [Twitter](https://twitter.com/KingHittz)
-* 💬 Discord: `KingHittz`
+* 🌐 [Twitch](https://www.google.com/search?q=https://twitch.tv/pwnedByJT)
+* 🐦 [Twitter](https://www.google.com/search?q=https://twitter.com/pwnedByJT)
+* 💬 Discord: `pwnedByJT`
 
 ---
 
