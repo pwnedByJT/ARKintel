@@ -75,7 +75,7 @@ async def server(interaction: discord.Interaction, server_number: str):
     # --- Check Channel ID ---
     if interaction.channel_id != TARGET_CHANNEL_ID:
         await interaction.response.send_message(
-            f"Please use the correct channel: <#{TARGET_CHANNEL_ID}> :t_rex:", 
+            f"Please use the correct channel: <#{TARGET_CHANNEL_ID}>", 
             ephemeral=True
         )
         return
@@ -136,7 +136,7 @@ async def topserver(interaction: discord.Interaction):
     # --- Check Channel ID ---
     if interaction.channel_id != TARGET_CHANNEL_ID:
         await interaction.response.send_message(
-            f"Please use the correct channel: <#{TARGET_CHANNEL_ID}> :t_rex:", 
+            f"Please use the correct channel: <#{TARGET_CHANNEL_ID}>", 
             ephemeral=True
         )
         return
