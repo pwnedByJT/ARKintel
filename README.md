@@ -1,6 +1,11 @@
+This update documents the **Live Monitor**, **Voice Channels**, **Favorites System**, **Auto-EVO Alerts**, and **Autocomplete** features we just built.
+
+Copy the code below and replace your `README.md` file content with it.
+
+```markdown
 # 🦖 ARKintel
 
-**A Discord bot that delivers real-time ARK: Survival Ascended server data.**
+**A Discord bot that delivers real-time ARK: Survival Ascended server data with live monitoring and alerts.**
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python)
 ![Discord.py](https://img.shields.io/badge/discord.py-2.3.2-blue?logo=discord)
@@ -11,45 +16,51 @@
 
 ## 📖 Overview
 
-**ARKintel** is a Discord bot designed for **ARK: Survival Ascended** players who want to easily check **official server stats** right from Discord.
-By using simple **slash commands**, users can:
+**ARKintel** is a feature-rich Discord bot designed for **ARK: Survival Ascended** players. Beyond just checking stats, it turns your Discord into a live command center for Official servers.
 
-* 🔍 Search for any official ASA server by number or name.
-* 📊 View live server data (map, player count, IP, and platform).
-* 🏆 See the top 5 most populated official servers in real time.
-
-All data is pulled directly from **ARK’s official APIs**, ensuring accurate and up-to-date information for your tribe or community.
+It features **Live Dashboards** that update every minute, **Voice Channel Counters** for quick checking, **Personal Favorites lists**, and **Automatic Alerts** when EVO events start or server rates change.
 
 ---
 
 ## ✨ Features
 
-✅ `/server [number]` — Fetches details for a specific official server.
-✅ `/topserver` — Displays the top 5 official servers sorted by player count.
-✅ **Channel-Locked** — Commands are restricted to a specific channel to prevent spam.
-✅ Real-time player, map, and rate information.
-✅ Pulls live multipliers like **XP rates** from ARK’s dynamic config.
-✅ Clean, Discord-embedded responses.
-✅ Built using modern slash commands (no `!prefix` required).
+### 🖥️ Live Monitoring
+✅ **/monitor [server]** — Creates a **Live Dashboard** message that updates every 60 seconds.
+✅ **Voice Counters** — Automatically creates a locked Voice Channel (e.g., `🔊 ASA #2154: 45/70`) that updates with the server population.
+✅ **Admin Controls** — Monitor commands are restricted to Admins/Mods to prevent spam.
+
+### ⭐ Personalization & Utilities
+✅ **Favorites System** — Users can save servers to their personal list (`/fav_add`) for quick access.
+✅ **Smart Autocomplete** — No need to memorize IDs! Type "21" and pick from a list of matching servers.
+✅ **Auto-EVO Alerts** — The bot automatically pings a role when **Official Server Rates** (XP, Harvest, etc.) change.
+
+### 📊 Core Data
+✅ **/server** — Fetches detailed stats (IP, Map, Day, Pop) for any official server.
+✅ **/topserver** — Displays the top 5 most populated servers globally.
+✅ **Real-Time Data** — Pulls directly from Studio Wildcard's API.
 
 ---
 
-## 🧠 Example Commands
+## 🧠 Commands List
 
-### 🔹 `/server 1123`
+### 🛠️ Admin / Monitoring
+* `/monitor [server]` — Starts a live dashboard & voice counter for a server.
+* `/stopmonitor [server]` — Stops tracking a server and cleans up the channels.
 
-> Returns information about the official server containing “1123” in its name, including map, IP, player count, and current rates.
+### ⭐ Favorites
+* `/fav_add [server]` — Save a server to your personal favorites.
+* `/fav_list` — View a clean summary of all your favorite servers.
+* `/fav_remove [server]` — Remove a server from your list.
 
-### 🔹 `/topserver`
-
-> Lists the five official ASA servers with the highest active player counts.
+### 🔍 General
+* `/server [name/number]` — Lookup stats for a specific server.
+* `/topserver` — Show the top 5 highest population servers.
 
 ---
 
 ## 🛠️ Setup & Installation
 
 ### 1. Clone the repository
-
 ```bash
 git clone [https://github.com/pwnedByJT/ARKintel.git](https://github.com/pwnedByJT/ARKintel.git)
 cd ARKintel
@@ -67,28 +78,27 @@ pip install -r requirements.txt
 
 Create a file named `.env` in the project directory and add your Discord bot token:
 
-```
+```ini
 DISCORD_TOKEN=your_discord_bot_token_here
 
 ```
 
-### 4. Configure the Channel ID
+### 4. Configure IDs
 
-Open `ARKintel.py` and look for the configuration section near the top:
+Open `ARK.py` and look for the configuration section near the top. You must set these for the bot to work:
 
 ```python
 # --- CONFIGURATION ---
-TARGET_CHANNEL_ID = 1178760002186526780  # <-- Replace with your Discord Channel ID
+TARGET_CHANNEL_ID = 1178760002186526780  # Channel where commands are allowed
+ARK_ROLE_ID = 1364705580064706600        # Role to ping for Alerts (e.g. @Ark)
 # ---------------------
 
 ```
 
-Replace the number with the ID of the channel where you want the bot to be active.
-
 ### 5. Run the bot
 
 ```bash
-python ARKintel.py
+python ARK.py
 
 ```
 
@@ -96,19 +106,20 @@ python ARKintel.py
 
 ## 🔑 Permissions Required
 
-When inviting your bot to your server, make sure it has:
+For the **Live Monitor** and **Voice Channels** to work, the bot needs these permissions in your Discord server:
 
-* **Use Slash Commands**
+* **Manage Channels** (Critical for creating/renaming the Voice Counters)
+* **View Channels**
 * **Send Messages**
 * **Embed Links**
-* **Read Message History**
+* **Use Slash Commands**
 
 ---
 
 ## 📡 Data Sources
 
-* **Server List:** [cdn2.arkdedicated.com/servers/asa/officialserverlist.json](https://cdn2.arkdedicated.com/servers/asa/officialserverlist.json)
-* **Dynamic Config:** [cdn2.arkdedicated.com/asa/dynamicconfig.ini](https://cdn2.arkdedicated.com/asa/dynamicconfig.ini)
+* **Server List:** `cdn2.arkdedicated.com/servers/asa/officialserverlist.json`
+* **Dynamic Config:** `cdn2.arkdedicated.com/asa/dynamicconfig.ini`
 
 All data is provided by **Studio Wildcard’s official infrastructure**.
 
@@ -128,12 +139,6 @@ All data is provided by **Studio Wildcard’s official infrastructure**.
 
 This project is licensed under the **MIT License**
 
----
+```
 
-## 🚀 Future Plans
-
-* Add `/searchmap` command to filter servers by map.
-* Add uptime and ping data via BattleMetrics API.
-* Create a web dashboard version using Flask or Next.js.
-
----
+```
