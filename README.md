@@ -1,7 +1,3 @@
-This update documents the **Live Monitor**, **Voice Channels**, **Favorites System**, **Auto-EVO Alerts**, and **Autocomplete** features we just built.
-
-Copy the code below and replace your `README.md` file content with it.
-
 ```markdown
 # 🦖 ARKintel
 
