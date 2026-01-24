@@ -1,4 +1,3 @@
-```markdown
 # 🦖 ARKintel
 
 **A Discord bot that delivers real-time ARK: Survival Ascended server data with live monitoring and alerts.**
