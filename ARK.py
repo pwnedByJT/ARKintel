@@ -13,6 +13,7 @@ import os
 import random
 import asyncio
 import json
+import sqlite3
 from datetime import datetime, timezone, timedelta
 from typing import List 
 
@@ -27,6 +28,8 @@ if not TOKEN:
 TARGET_CHANNEL_ID = 1178760002186526780
 ARK_ROLE_ID = 1364705580064706600
 FAVORITES_FILE = "favorites.json"
+STATS_DB = "server_stats.db"
+ALERT_THRESHOLD = 8  # Players needed to trigger alert
 # ---------------------
 
 # --- GLOBAL VARIABLES ---
@@ -45,6 +48,123 @@ class MyBot(commands.Bot):
         await self.tree.sync()
 
 bot = MyBot()
+
+# =========================================
+# DATABASE INITIALIZATION
+# =========================================
+
+def init_stats_db():
+    """Initialize the server stats database"""
+    conn = sqlite3.connect(STATS_DB)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS server_stats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            server_name TEXT NOT NULL,
+            player_count INTEGER NOT NULL,
+            max_players INTEGER,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    c.execute('''
+        CREATE INDEX IF NOT EXISTS idx_server_time 
+        ON server_stats(server_name, timestamp)
+    ''')
+    conn.commit()
+    conn.close()
+
+def record_server_stats(server_name: str, player_count: int, max_players: int):
+    """Record player count for a server"""
+    try:
+        conn = sqlite3.connect(STATS_DB)
+        c = conn.cursor()
+        c.execute(
+            "INSERT INTO server_stats (server_name, player_count, max_players) VALUES (?, ?, ?)",
+            (server_name, player_count, max_players)
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Error recording stats: {e}")
+
+def get_server_stats(server_name: str, hours: int = 24) -> dict:
+    """Get server stats for the last N hours"""
+    try:
+        conn = sqlite3.connect(STATS_DB)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
+        c.execute(
+            "SELECT * FROM server_stats WHERE server_name = ? AND timestamp > ? ORDER BY timestamp",
+            (server_name, cutoff_time.isoformat())
+        )
+        rows = c.fetchall()
+        conn.close()
+        
+        if not rows:
+            return {"error": "No data found"}
+        
+        player_counts = [row["player_count"] for row in rows]
+        return {
+            "current": player_counts[-1],
+            "avg": round(sum(player_counts) / len(player_counts), 1),
+            "peak": max(player_counts),
+            "low": min(player_counts),
+            "datapoints": len(player_counts)
+        }
+    except Exception as e:
+        print(f"Error retrieving stats: {e}")
+        return {"error": str(e)}
+
+def get_peak_hours(server_name: str, days: int = 7) -> dict:
+    """Analyze peak hours for a server"""
+    try:
+        conn = sqlite3.connect(STATS_DB)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        cutoff_time = datetime.now(timezone.utc) - timedelta(days=days)
+        c.execute(
+            "SELECT * FROM server_stats WHERE server_name = ? AND timestamp > ? ORDER BY timestamp",
+            (server_name, cutoff_time.isoformat())
+        )
+        rows = c.fetchall()
+        conn.close()
+        
+        if not rows:
+            return {"error": "No data found"}
+        
+        # Group by hour of day
+        hour_data = {hour: [] for hour in range(24)}
+        for row in rows:
+            ts = datetime.fromisoformat(row["timestamp"])
+            hour = ts.hour
+            hour_data[hour].append(row["player_count"])
+        
+        # Calculate averages per hour
+        hour_avg = {}
+        for hour, counts in hour_data.items():
+            if counts:
+                hour_avg[hour] = round(sum(counts) / len(counts), 1)
+        
+        if not hour_avg:
+            return {"error": "No data found"}
+        
+        # Find peak hour
+        peak_hour = max(hour_avg, key=hour_avg.get)
+        peak_players = hour_avg[peak_hour]
+        
+        # Get top 3 hours
+        top_3 = sorted(hour_avg.items(), key=lambda x: x[1], reverse=True)[:3]
+        
+        return {
+            "peak_hour": peak_hour,
+            "peak_players": peak_players,
+            "top_3": top_3,
+            "all_hours": hour_avg
+        }
+    except Exception as e:
+        print(f"Error retrieving peak hours: {e}")
+        return {"error": str(e)}
 
 # =========================================
 # HELPER FUNCTIONS
@@ -168,10 +288,13 @@ async def update_dashboards():
                         current_players = new_data.get("NumPlayers", 0)
                         max_players = new_data.get("MaxPlayers", 70)
                         
-                        if current_players > 5 and not info.get("alert_sent", False):
+                        # Record stats
+                        record_server_stats(srv_num, current_players, max_players)
+                        
+                        if current_players > ALERT_THRESHOLD and not info.get("alert_sent", False):
                             await channel.send(f"<@&{ARK_ROLE_ID}> 🚨 **ALERT:** Player count on **{srv_num}** is high! ({current_players} Players)")
                             monitored_servers[srv_num]["alert_sent"] = True
-                        elif current_players <= 5:
+                        elif current_players <= ALERT_THRESHOLD:
                             monitored_servers[srv_num]["alert_sent"] = False
                             
                     except discord.NotFound:
@@ -468,6 +591,85 @@ async def topserver(interaction: discord.Interaction):
     embed.set_footer(text="Made by pwnedByJT")
     await interaction.followup.send(embed=embed)
 
+@bot.tree.command(name="serverstats", description="View player history and stats for a server")
+@app_commands.describe(server_number="The server number to check stats for", hours="Hours of history (default 24)")
+@app_commands.autocomplete(server_number=server_autocomplete)
+async def serverstats(interaction: discord.Interaction, server_number: str, hours: int = 24):
+    if interaction.channel_id != TARGET_CHANNEL_ID:
+        await interaction.response.send_message(f"Wrong channel: <#{TARGET_CHANNEL_ID}>", ephemeral=True)
+        return
+
+    await interaction.response.defer()
+    
+    # Validate hours
+    if hours < 1 or hours > 168:  # Max 1 week
+        await interaction.followup.send("⚠️ Hours must be between 1 and 168 (1 week).", ephemeral=True)
+        return
+    
+    # Get stats
+    stats = get_server_stats(server_number, hours)
+    
+    if "error" in stats:
+        await interaction.followup.send(f"❌ No data found for **{server_number}**. Stats begin recording when a monitor is created.", ephemeral=True)
+        return
+    
+    embed = discord.Embed(
+        title=f"📊 Server Stats: {server_number}",
+        description=f"Last {hours} hour(s) of data ({stats['datapoints']} samples)",
+        color=discord.Color.blue()
+    )
+    
+    embed.add_field(name="📈 Current", value=f"```{stats['current']} players```", inline=True)
+    embed.add_field(name="⏱️ Average", value=f"```{stats['avg']} players```", inline=True)
+    embed.add_field(name="🔺 Peak", value=f"```{stats['peak']} players```", inline=True)
+    embed.add_field(name="🔻 Low", value=f"```{stats['low']} players```", inline=False)
+    
+    embed.set_footer(text=f"Last {hours}h | {stats['datapoints']} data points")
+    await interaction.followup.send(embed=embed)
+
+@bot.tree.command(name="peaktime", description="Show the busiest times for a server")
+@app_commands.describe(server_number="The server number to check peak times for", days="Days of history (default 7)")
+@app_commands.autocomplete(server_number=server_autocomplete)
+async def peaktime(interaction: discord.Interaction, server_number: str, days: int = 7):
+    if interaction.channel_id != TARGET_CHANNEL_ID:
+        await interaction.response.send_message(f"Wrong channel: <#{TARGET_CHANNEL_ID}>", ephemeral=True)
+        return
+
+    await interaction.response.defer()
+    
+    # Validate days
+    if days < 1 or days > 30:
+        await interaction.followup.send("⚠️ Days must be between 1 and 30.", ephemeral=True)
+        return
+    
+    # Get peak hours
+    peak_data = get_peak_hours(server_number, days)
+    
+    if "error" in peak_data:
+        await interaction.followup.send(f"❌ No data found for **{server_number}**. Need at least 1 day of stats.", ephemeral=True)
+        return
+    
+    peak_hour = peak_data["peak_hour"]
+    peak_players = peak_data["peak_players"]
+    top_3 = peak_data["top_3"]
+    
+    # Format time
+    peak_time_str = f"{peak_hour:02d}:00 UTC"
+    
+    embed = discord.Embed(
+        title=f"⏰ Peak Times: {server_number}",
+        description=f"Last {days} day(s) of analysis",
+        color=discord.Color.gold()
+    )
+    
+    embed.add_field(name="🔥 Busiest Hour", value=f"```{peak_time_str}\n{peak_players} avg players```", inline=False)
+    
+    top_3_str = "\n".join([f"#{i+1}. {h:02d}:00 UTC - {p} players" for i, (h, p) in enumerate(top_3)])
+    embed.add_field(name="🏆 Top 3 Peak Hours", value=f"```{top_3_str}```", inline=False)
+    
+    embed.set_footer(text=f"Last {days} days of data")
+    await interaction.followup.send(embed=embed)
+
 @bot.command()
 async def sync(ctx):
     bot.tree.copy_global_to(guild=ctx.guild)
@@ -477,6 +679,17 @@ async def sync(ctx):
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
+    
+    # Initialize database
+    init_stats_db()
+    print("✅ Stats Database Initialized")
+    
+    # Sync slash commands globally
+    try:
+        synced = await bot.tree.sync()
+        print(f"✅ Synced {len(synced)} slash command(s) globally")
+    except Exception as e:
+        print(f"⚠️ Failed to sync commands: {e}")
     
     if not update_server_cache.is_running():
         update_server_cache.start()
