@@ -13,6 +13,7 @@ import json
 import sqlite3
 from datetime import datetime, timezone, timedelta
 from typing import List 
+from dotenv import load_dotenv
 
 # --- CONFIGURATION ---
 TARGET_CHANNEL_ID = 1178760002186526780
@@ -542,3 +543,22 @@ class ARKCog(commands.Cog):
 async def setup(bot: commands.Bot):
     """Handshake that allows the master bot to load this module."""
     await bot.add_cog(ARKCog(bot))
+
+if __name__ == "__main__":
+    # Load environment variables
+    load_dotenv()
+    TOKEN = os.getenv("DISCORD_TOKEN")
+
+    if not TOKEN:
+        print("❌ Error: DISCORD_TOKEN not found in .env file.")
+        exit(1)
+
+    class StandaloneBot(commands.Bot):
+        async def setup_hook(self):
+            await self.add_cog(ARKCog(self))
+            await self.tree.sync()
+            print("✅ Slash commands synced")
+
+    # Initialize and run the bot
+    bot = StandaloneBot(command_prefix="!", intents=discord.Intents.default())
+    bot.run(TOKEN)
