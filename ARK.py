@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 TARGET_CHANNEL_ID = 1178760002186526780
 ARK_ROLE_ID = 1364705580064706600
 FAVORITES_FILE = "favorites.json"
+MONITORS_FILE = "monitors.json"
 STATS_DB = "server_stats.db"
 ALERT_THRESHOLD = 8  # Players needed to trigger alert
 # ---------------------
@@ -178,6 +179,37 @@ def update_user_favorites(user_id, server_number, action="add"):
             return True
         return False 
 
+def load_monitors():
+    if not os.path.exists(MONITORS_FILE):
+        return {}
+    try:
+        with open(MONITORS_FILE, "r") as f:
+            data = json.load(f)
+            for key, value in data.items():
+                if "last_vc_update" in value:
+                    try:
+                        value["last_vc_update"] = datetime.fromisoformat(value["last_vc_update"])
+                    except ValueError:
+                        value["last_vc_update"] = datetime.now(timezone.utc)
+            return data
+    except Exception as e:
+        print(f"Error loading monitors: {e}")
+        return {}
+
+def save_monitors():
+    try:
+        data_to_save = {}
+        for key, value in monitored_servers.items():
+            item = value.copy()
+            if isinstance(item.get("last_vc_update"), datetime):
+                item["last_vc_update"] = item["last_vc_update"].isoformat()
+            data_to_save[key] = item
+        
+        with open(MONITORS_FILE, "w") as f:
+            json.dump(data_to_save, f, indent=4)
+    except Exception as e:
+        print(f"Error saving monitors: {e}")
+
 def fetch_xp_multiplier():
     try:
         response = requests.get("https://cdn2.arkdedicated.com/asa/dynamicconfig.ini", timeout=10)
@@ -232,6 +264,11 @@ class ARKCog(commands.Cog):
         # Initialize Database
         init_stats_db()
         print("✅ [ARKCog] Database Initialized")
+        
+        # Load Monitors
+        global monitored_servers
+        monitored_servers = load_monitors()
+        print(f"✅ Loaded {len(monitored_servers)} active monitors.")
         
         # Start Background Tasks
         self.update_server_cache.start()
@@ -291,6 +328,7 @@ class ARKCog(commands.Cog):
                                 
                         except discord.NotFound:
                             del monitored_servers[srv_num]
+                            save_monitors()
                         except Exception as e:
                             print(f"Failed to edit message for {srv_num}: {e}")
 
@@ -306,6 +344,7 @@ class ARKCog(commands.Cog):
                                 if vc_channel.name != new_name:
                                     await vc_channel.edit(name=new_name)
                                     monitored_servers[srv_num]["last_vc_update"] = now
+                                    save_monitors()
                             except Exception as e:
                                 print(f"Failed to update VC name for {srv_num}: {e}")
 
@@ -413,6 +452,7 @@ class ARKCog(commands.Cog):
             "last_vc_update": datetime.now(timezone.utc),
             "alert_sent": False 
         }
+        save_monitors()
         
         if not self.update_dashboards.is_running():
             self.update_dashboards.start()
@@ -447,6 +487,7 @@ class ARKCog(commands.Cog):
             except: pass 
 
         del monitored_servers[key_to_delete]
+        save_monitors()
         await interaction.response.send_message(f"🛑 Monitoring stopped for **{key_to_delete}**.", ephemeral=True)
 
     @app_commands.command(name="fav_add", description="Add a server to your favorites list")
