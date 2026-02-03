@@ -399,17 +399,34 @@ class ARKCog(commands.Cog):
             return
 
         xp_multiplier = fetch_xp_multiplier()
-        embed = discord.Embed(title="Official Server | Made by pwnedByJT", color=discord.Color.from_rgb(0, 255, 0))
-        embed.add_field(name="Server Name", value=f"```{matched_server['Name']}```", inline=False)
-        embed.add_field(name="Players Online", value=f"```{matched_server.get('NumPlayers', 'N/A')}```", inline=True)
-        embed.add_field(name="Map", value=f"```{matched_server.get('MapName', 'Unknown')}```", inline=True)
-        if 'DayTime' in matched_server:
-            embed.add_field(name="Day", value=f"```{matched_server['DayTime']}```", inline=True)
-        embed.add_field(name="IP", value=f"```{matched_server.get('IP', 'Unknown')}```", inline=True)
-        embed.add_field(name="Port", value=f"```{matched_server.get('Port', 'N/A')}```", inline=True)
-        if xp_multiplier:
-            embed.add_field(name="Server Rates", value=f"```{xp_multiplier}```", inline=False)
         
+        # Determine status color and text
+        players = matched_server.get('NumPlayers', 0)
+        max_players = matched_server.get('MaxPlayers', 70)
+        
+        if players >= 65:
+            color = discord.Color.red()
+            status_text = "🔴 High Population"
+        elif players >= 35:
+            color = discord.Color.orange()
+            status_text = "🟠 Medium Population"
+        else:
+            color = discord.Color.green()
+            status_text = "🟢 Low Population"
+
+        embed = discord.Embed(title=f"🦖 {matched_server['Name']}", description=f"**Status:** {status_text}", color=color)
+        
+        embed.add_field(name="👥 Players", value=f"**{players}** / {max_players}", inline=True)
+        embed.add_field(name="🗺️ Map", value=f"{matched_server.get('MapName', 'Unknown')}", inline=True)
+        if 'DayTime' in matched_server:
+            embed.add_field(name="🌞 Day", value=f"{matched_server['DayTime']}", inline=True)
+            
+        embed.add_field(name="🌐 Connection Info", value=f"```{matched_server.get('IP', 'Unknown')}:{matched_server.get('Port', 'N/A')}```", inline=False)
+        
+        if xp_multiplier:
+            embed.add_field(name="📈 Current Rates", value=f"**{xp_multiplier}x**", inline=True)
+        
+        embed.set_footer(text="ARKintel • Official Data", icon_url="https://img.icons8.com/color/48/dinosaur-egg.png")
         await interaction.followup.send(embed=embed)
 
     @app_commands.command(name="monitor", description="Create a live updating dashboard & voice counter")
