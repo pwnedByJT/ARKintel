@@ -384,18 +384,18 @@ class ARKCog(commands.Cog):
     # =========================================
 
     @app_commands.command(name="server", description="Check the status of an official ASA server")
-    @app_commands.describe(server_name="Type part of the server name (e.g. 2154)")
-    @app_commands.autocomplete(server_name=server_autocomplete) 
-    async def server(self, interaction: discord.Interaction, server_name: str):
+    @app_commands.describe(query="Server Name or Number (e.g. 2154)")
+    @app_commands.autocomplete(query=server_autocomplete) 
+    async def server(self, interaction: discord.Interaction, query: str):
         if interaction.channel_id != TARGET_CHANNEL_ID:
             await interaction.response.send_message(f"Please use the correct channel: <#{TARGET_CHANNEL_ID}>", ephemeral=True)
             return
         
         await interaction.response.defer(thinking=True)
-        matched_server = next((s for s in CACHED_SERVERS if server_name == s['Name']), None)
+        matched_server = next((s for s in CACHED_SERVERS if query == s['Name']), None)
         
         if not matched_server:
-            await interaction.followup.send(f"No server found matching `{server_name}`.")
+            await interaction.followup.send(f"No server found matching `{query}`.")
             return
 
         xp_multiplier = fetch_xp_multiplier()
