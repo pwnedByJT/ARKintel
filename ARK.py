@@ -1,7 +1,7 @@
 """
 Program name: ARK.py
 Description: Enterprise-grade ARK monitoring suite.
-             Features: Live Embed Dashboards, One-Time Status Checks (/serverpop),
+             Features: Live Dashboards, /console optimization, /serverpop,
              Voice Counters, Favorites, SQL Analytics, and Auto-EVO Alerts.
              Architecture: Async/OOP (Non-blocking)
              Standards: Strict No-Emote Policy | Dynamic Random Colors
@@ -73,13 +73,13 @@ class DatabaseEngine:
 class EmbedFactory:
     @staticmethod
     def create_monitor(data: Dict, rates: str = "1.0") -> discord.Embed:
-        # RANDOM COLOR GENERATION (Overrides status color)
-        rand_color = discord.Color(random.randint(0, 0xFFFFFF))
-        
+        # Status Color Logic
         pop = data.get('NumPlayers', 0)
+        color = discord.Color.green() if pop < 40 else (discord.Color.gold() if pop < 65 else discord.Color.red())
+        
         status_text = "[ONLINE]" if pop < 70 else "[FULL]"
         
-        embed = discord.Embed(title=f"{status_text} {data.get('Name')}", color=rand_color)
+        embed = discord.Embed(title=f"{status_text} {data.get('Name')}", color=color)
         
         # FOOTER: Includes branding and update time
         footer_time = datetime.now(timezone.utc).strftime('%H:%M UTC')
@@ -141,10 +141,8 @@ class ARKCog(commands.Cog):
         for srv_id, meta in list(self.monitors.items()):
             node = next((s for s in self.cache if srv_id in s.get("Name", "")), None)
             if node:
-                # Update DB
                 await self.db.record_stats(srv_id, node.get('NumPlayers'), node.get('MaxPlayers'))
                 
-                # Update Embed (Will generate new random color)
                 chan = self.bot.get_channel(meta["channel_id"])
                 if chan:
                     embed = EmbedFactory.create_monitor(node, self.current_rates)
@@ -153,7 +151,6 @@ class ARKCog(commands.Cog):
                         await msg.edit(embed=embed)
                     except: pass
                     
-                    # Update VC
                     vc_id = meta.get("vc_id")
                     if vc_id:
                         vc = self.bot.get_channel(vc_id)
@@ -179,6 +176,31 @@ class ARKCog(commands.Cog):
             except: pass
 
     # --- COMMANDS ---
+
+    @app_commands.command(name="console", description="Get optimization console commands")
+    async def console(self, itxn: discord.Interaction):
+        # Optimization String
+        cmd_string = (
+            "FoliageQuality 0 | sg.TextureQuality 0 | r.Shading.FurnaceTest.SampleCount 0 | "
+            "r.VolumetricCloud 0 | r.VolumetricFog 0 | r.Water.SingleLayer.Reflection 0 | "
+            "r.ShadowQuality 0 | r.ContactShadows 0 | r.depthoffieldquality 0 | r.Fog 0 | "
+            "r.bloomquality 0 | r.LightCulling.Quality 0 | r.SkyAtmosphere 0 | "
+            "r.Lumen.Reflections.Allow 1 | r.Lumen.DiffuseIndirect.Allow 1 | "
+            "r.Shadow.Virtual.Enable 0 | r.DistanceFieldShadowing 1 | "
+            "r.Shadow.CSM.MaxCascades 0 | r.SkylightIntensityMultiplier 1 | grass.sizescale 0 | "
+            "ark.MaxActiveDestroyedMeshGeoCollectionCount 0 | r.Tonemapper.Sharpen 2 | "
+            "r.SkyLight.RealTimeReflectionCapture 0 | r.EyeAdaptation.BlackHistogramBucketInfluence 0 | "
+            "r.Lumen.Reflections.Contrast -4 | r.LightMaxDrawDistanceScale -1 | "
+            "r.Lumen.ScreenProbeGather.DirectLighting 1 | r.Color.Grading 0 | grass.sizeScale 0 | "
+            "r.Water.SingleLayer.Reflection 0 | r.shadowquality 0 | r.shadow.virtual.enable 0 | gamma 4 |"
+        )
+        
+        rand_color = discord.Color(random.randint(0, 0xFFFFFF))
+        embed = discord.Embed(title="Console Optimization Commands", color=rand_color)
+        embed.set_footer(text="Designed by pwnedByJT")
+        embed.add_field(name="Copy Command String", value=f"```{cmd_string}```", inline=False)
+        
+        await itxn.response.send_message(embed=embed)
 
     @app_commands.command(name="monitor", description="Start a live dashboard and voice counter")
     @app_commands.autocomplete(server_number=server_autocomplete)
@@ -213,7 +235,6 @@ class ARKCog(commands.Cog):
         node = next((s for s in self.cache if server_number in s['Name']), None)
         if not node: return await itxn.followup.send("Server not found in API cache.")
 
-        # Generates fresh random color on every run
         embed = EmbedFactory.create_monitor(node, self.current_rates)
         await itxn.followup.send(embed=embed)
 
@@ -249,7 +270,6 @@ class ARKCog(commands.Cog):
         if uid not in self.favorites or not self.favorites[uid]:
             return await itxn.response.send_message("You have no favorites.", ephemeral=True)
         
-        # Random color for favorites list
         rand_color = discord.Color(random.randint(0, 0xFFFFFF))
         embed = discord.Embed(title=f"{itxn.user.name}'s Favorites", color=rand_color)
         embed.set_footer(text="Designed by pwnedByJT") 
@@ -267,7 +287,6 @@ class ARKCog(commands.Cog):
         stats = await self.db.get_stats(server_number, hours)
         if not stats: return await itxn.followup.send("No data recorded yet. Monitor the server first.")
         
-        # Random color for stats
         rand_color = discord.Color(random.randint(0, 0xFFFFFF))
         embed = discord.Embed(title=f"Analytics: {server_number}", color=rand_color)
         embed.set_footer(text="Designed by pwnedByJT")
