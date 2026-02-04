@@ -4,7 +4,7 @@ Description: Enterprise-grade ARK monitoring suite.
              Features: Live Embed Dashboards, One-Time Status Checks (/serverpop),
              Voice Counters, Favorites, SQL Analytics, and Auto-EVO Alerts.
              Architecture: Async/OOP (Non-blocking)
-             Standards: Strict No-Emote Policy
+             Standards: Strict No-Emote Policy | Dynamic Random Colors
 Author: Justin Aaron Turner
 Updated: February 3, 2026
 """
@@ -73,15 +73,15 @@ class DatabaseEngine:
 class EmbedFactory:
     @staticmethod
     def create_monitor(data: Dict, rates: str = "1.0") -> discord.Embed:
-        # Status Color Logic
-        pop = data.get('NumPlayers', 0)
-        color = discord.Color.green() if pop < 40 else (discord.Color.gold() if pop < 65 else discord.Color.red())
+        # RANDOM COLOR GENERATION (Overrides status color)
+        rand_color = discord.Color(random.randint(0, 0xFFFFFF))
         
+        pop = data.get('NumPlayers', 0)
         status_text = "[ONLINE]" if pop < 70 else "[FULL]"
         
-        embed = discord.Embed(title=f"{status_text} {data.get('Name')}", color=color)
+        embed = discord.Embed(title=f"{status_text} {data.get('Name')}", color=rand_color)
         
-        # FOOTER UPDATED: Includes your branding
+        # FOOTER: Includes branding and update time
         footer_time = datetime.now(timezone.utc).strftime('%H:%M UTC')
         embed.set_footer(text=f"Designed by pwnedByJT | UPDATED: {footer_time}")
         
@@ -141,8 +141,10 @@ class ARKCog(commands.Cog):
         for srv_id, meta in list(self.monitors.items()):
             node = next((s for s in self.cache if srv_id in s.get("Name", "")), None)
             if node:
+                # Update DB
                 await self.db.record_stats(srv_id, node.get('NumPlayers'), node.get('MaxPlayers'))
                 
+                # Update Embed (Will generate new random color)
                 chan = self.bot.get_channel(meta["channel_id"])
                 if chan:
                     embed = EmbedFactory.create_monitor(node, self.current_rates)
@@ -151,6 +153,7 @@ class ARKCog(commands.Cog):
                         await msg.edit(embed=embed)
                     except: pass
                     
+                    # Update VC
                     vc_id = meta.get("vc_id")
                     if vc_id:
                         vc = self.bot.get_channel(vc_id)
@@ -210,7 +213,7 @@ class ARKCog(commands.Cog):
         node = next((s for s in self.cache if server_number in s['Name']), None)
         if not node: return await itxn.followup.send("Server not found in API cache.")
 
-        # Generates the same professional embed, but DOES NOT save to monitors list
+        # Generates fresh random color on every run
         embed = EmbedFactory.create_monitor(node, self.current_rates)
         await itxn.followup.send(embed=embed)
 
@@ -220,12 +223,10 @@ class ARKCog(commands.Cog):
         if server_number in self.monitors:
             data = self.monitors.pop(server_number)
             self._save_json(Config.MONITORS_FILE, self.monitors)
-            
             try: 
                 if data.get("vc_id"): await self.bot.get_channel(data["vc_id"]).delete()
                 await (await self.bot.get_channel(data["channel_id"]).fetch_message(data["message_id"])).delete()
             except: pass
-            
             await itxn.response.send_message(f"Stopped monitoring **{server_number}**.")
         else:
             await itxn.response.send_message("Server is not being monitored.", ephemeral=True)
@@ -248,8 +249,11 @@ class ARKCog(commands.Cog):
         if uid not in self.favorites or not self.favorites[uid]:
             return await itxn.response.send_message("You have no favorites.", ephemeral=True)
         
-        embed = discord.Embed(title=f"{itxn.user.name}'s Favorites", color=discord.Color.gold())
+        # Random color for favorites list
+        rand_color = discord.Color(random.randint(0, 0xFFFFFF))
+        embed = discord.Embed(title=f"{itxn.user.name}'s Favorites", color=rand_color)
         embed.set_footer(text="Designed by pwnedByJT") 
+        
         for srv in self.favorites[uid]:
             node = next((s for s in self.cache if srv in s['Name']), None)
             status = f"[ONLINE] {node.get('NumPlayers')}/70" if node else "[OFFLINE]"
@@ -263,8 +267,11 @@ class ARKCog(commands.Cog):
         stats = await self.db.get_stats(server_number, hours)
         if not stats: return await itxn.followup.send("No data recorded yet. Monitor the server first.")
         
-        embed = discord.Embed(title=f"Analytics: {server_number}", color=discord.Color.blue())
+        # Random color for stats
+        rand_color = discord.Color(random.randint(0, 0xFFFFFF))
+        embed = discord.Embed(title=f"Analytics: {server_number}", color=rand_color)
         embed.set_footer(text="Designed by pwnedByJT")
+        
         embed.add_field(name="Current", value=f"`{stats['current']}`", inline=True)
         embed.add_field(name="Average", value=f"`{stats['avg']}`", inline=True)
         embed.add_field(name="Peak", value=f"`{stats['peak']}`", inline=True)
