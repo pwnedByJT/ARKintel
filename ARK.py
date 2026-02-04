@@ -75,6 +75,7 @@ class GraphicsEngine:
             self.f_hdr = self.f_lbl = self.f_val = ImageFont.load_default()
 
     def generate_dashboard(self, data: Dict, rates: str) -> io.BytesIO:
+        # Standard Classic Dimensions: 650x480
         width, height = 650, 480
         img = Image.new('RGB', (width, height), color=(26, 28, 32))
         draw = ImageDraw.Draw(img)
@@ -89,7 +90,7 @@ class GraphicsEngine:
 
         def draw_field(x, y, w, h, label, value):
             draw.text((x, y), label.upper(), font=self.f_lbl, fill=(200, 200, 200))
-            # Background box
+            # Background box matching requested classic style
             draw.rectangle([(x, y+25), (x+w, y+65)], fill=(38, 41, 46))
             # Data value
             draw.text((x+12, y+35), str(value), font=self.f_val, fill=(255, 255, 255))
