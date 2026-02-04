@@ -94,25 +94,32 @@ class GraphicsEngine:
             # Data value
             draw.text((x+12, y+35), str(value), font=self.f_val, fill=(255, 255, 255))
 
-        # Core Layout Mapping
+        # Core Layout Mapping (Matches Classic Box Layout)
         draw_field(40, 65, 570, 40, "Server Name", data.get('Name', 'Unknown'))
         
         # Row 2: Operational Stats
-        draw_field(40, 150, 150, 40, "Active Users", f"{data.get('NumPlayers', 0)} / {data.get('MaxPlayers', 70)}")
-        draw_field(210, 150, 240, 40, "Map Zone", data.get('MapName', 'Unknown'))
-        draw_field(470, 150, 140, 40, "Day Cycle", data.get('DayTime', 'N/A'))
+        draw_field(40, 150, 150, 40, "Players Online", f"{data.get('NumPlayers', 0)}")
+        draw_field(210, 150, 240, 40, "Map", data.get('MapName', 'Unknown'))
+        draw_field(470, 150, 140, 40, "Day", data.get('DayTime', 'N/A'))
         
         # Row 3: Network Diagnostics
-        draw_field(40, 235, 280, 40, "Internet Protocol", data.get('IP', '0.0.0.0'))
-        draw_field(340, 235, 270, 40, "Port Address", data.get('Port', '7777'))
+        draw_field(40, 235, 280, 40, "IP", data.get('IP', '0.0.0.0'))
+        draw_field(340, 235, 270, 40, "Port", data.get('Port', '7777'))
         
         # Row 4: Environmental Variables
-        draw_field(40, 320, 570, 40, "Current Rates", f"{rates}x EFFECTIVE")
+        draw_field(40, 320, 570, 40, "Server Rates", f"{rates}")
 
         buffer = io.BytesIO()
         img.save(buffer, format="PNG")
         buffer.seek(0)
         return buffer
+
+# --- UTILITIES ---
+async def server_autocomplete(itxn: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+    cog = itxn.client.get_cog("ARKCog")
+    cache = cog.cache if cog else []
+    return [app_commands.Choice(name=s['Name'], value=s['Name']) 
+            for s in cache if current.lower() in s['Name'].lower()][:25]
 
 class ARKCog(commands.Cog):
     """Primary logic controller for the Discord monitoring gateway."""
@@ -191,13 +198,6 @@ class SystemCog(commands.Cog):
         cpu = psutil.cpu_percent()
         ram = psutil.virtual_memory().percent
         await itxn.response.send_message(f"SYSTEM_CPU_LOAD: {cpu}% | SYSTEM_RAM_UTILIZATION: {ram}%")
-
-# --- UTILITIES ---
-async def server_autocomplete(itxn: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-    cog = itxn.client.get_cog("ARKCog")
-    cache = cog.cache if cog else []
-    return [app_commands.Choice(name=s['Name'], value=s['Name']) 
-            for s in cache if current.lower() in s['Name'].lower()][:25]
 
 class Application(commands.Bot):
     def __init__(self):
