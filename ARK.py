@@ -1,8 +1,8 @@
 """
 Program name: ARK.py
 Description: Enterprise-grade ARK monitoring suite.
-             Features: Text-based Embed Dashboards, Voice Counters, Favorites, 
-             SQL Analytics, and Auto-EVO Alerts.
+             Features: Live Embed Dashboards, One-Time Status Checks (/serverpop),
+             Voice Counters, Favorites, SQL Analytics, and Auto-EVO Alerts.
              Architecture: Async/OOP (Non-blocking)
              Standards: Strict No-Emote Policy
 Author: Justin Aaron Turner
@@ -73,16 +73,19 @@ class DatabaseEngine:
 class EmbedFactory:
     @staticmethod
     def create_monitor(data: Dict, rates: str = "1.0") -> discord.Embed:
-        # Status Color Logic (Green for low pop, Red for high pop)
+        # Status Color Logic
         pop = data.get('NumPlayers', 0)
         color = discord.Color.green() if pop < 40 else (discord.Color.gold() if pop < 65 else discord.Color.red())
         
         status_text = "[ONLINE]" if pop < 70 else "[FULL]"
         
         embed = discord.Embed(title=f"{status_text} {data.get('Name')}", color=color)
-        embed.set_footer(text=f"UPDATED: {datetime.now(timezone.utc).strftime('%H:%M UTC')}")
         
-        # Professional Code Blocks for Copy-Paste
+        # FOOTER UPDATED: Includes your branding
+        footer_time = datetime.now(timezone.utc).strftime('%H:%M UTC')
+        embed.set_footer(text=f"Designed by pwnedByJT | UPDATED: {footer_time}")
+        
+        # Professional Code Blocks
         embed.add_field(name="Server Name", value=f"```{data.get('Name')}```", inline=False)
         embed.add_field(name="Player Count", value=f"```{pop}/{data.get('MaxPlayers', 70)}```", inline=True)
         embed.add_field(name="Map Name", value=f"```{data.get('MapName')}```", inline=True)
@@ -138,10 +141,8 @@ class ARKCog(commands.Cog):
         for srv_id, meta in list(self.monitors.items()):
             node = next((s for s in self.cache if srv_id in s.get("Name", "")), None)
             if node:
-                # 1. Update Database
                 await self.db.record_stats(srv_id, node.get('NumPlayers'), node.get('MaxPlayers'))
                 
-                # 2. Update Embed
                 chan = self.bot.get_channel(meta["channel_id"])
                 if chan:
                     embed = EmbedFactory.create_monitor(node, self.current_rates)
@@ -150,7 +151,6 @@ class ARKCog(commands.Cog):
                         await msg.edit(embed=embed)
                     except: pass
                     
-                    # 3. Update Voice Channel
                     vc_id = meta.get("vc_id")
                     if vc_id:
                         vc = self.bot.get_channel(vc_id)
@@ -185,11 +185,9 @@ class ARKCog(commands.Cog):
         node = next((s for s in self.cache if server_number in s['Name']), None)
         if not node: return await itxn.followup.send("Server not found in API cache.")
 
-        # Create Embed
         embed = EmbedFactory.create_monitor(node, self.current_rates)
         msg = await itxn.followup.send(embed=embed)
         
-        # Create Voice Channel
         vc_id = None
         if itxn.guild:
             cat = discord.utils.get(itxn.guild.categories, name="[ Ark ]") or itxn.channel.category
@@ -204,6 +202,18 @@ class ARKCog(commands.Cog):
         self.monitors[server_number] = {"message_id": msg.id, "channel_id": itxn.channel_id, "vc_id": vc_id}
         self._save_json(Config.MONITORS_FILE, self.monitors)
 
+    @app_commands.command(name="serverpop", description="Check current status (One-time snapshot)")
+    @app_commands.autocomplete(server_number=server_autocomplete)
+    async def serverpop(self, itxn: discord.Interaction, server_number: str):
+        await itxn.response.defer()
+        
+        node = next((s for s in self.cache if server_number in s['Name']), None)
+        if not node: return await itxn.followup.send("Server not found in API cache.")
+
+        # Generates the same professional embed, but DOES NOT save to monitors list
+        embed = EmbedFactory.create_monitor(node, self.current_rates)
+        await itxn.followup.send(embed=embed)
+
     @app_commands.command(name="stopmonitor", description="Stop tracking a server")
     @app_commands.autocomplete(server_number=server_autocomplete)
     async def stopmonitor(self, itxn: discord.Interaction, server_number: str):
@@ -211,7 +221,6 @@ class ARKCog(commands.Cog):
             data = self.monitors.pop(server_number)
             self._save_json(Config.MONITORS_FILE, self.monitors)
             
-            # Cleanup
             try: 
                 if data.get("vc_id"): await self.bot.get_channel(data["vc_id"]).delete()
                 await (await self.bot.get_channel(data["channel_id"]).fetch_message(data["message_id"])).delete()
@@ -240,6 +249,7 @@ class ARKCog(commands.Cog):
             return await itxn.response.send_message("You have no favorites.", ephemeral=True)
         
         embed = discord.Embed(title=f"{itxn.user.name}'s Favorites", color=discord.Color.gold())
+        embed.set_footer(text="Designed by pwnedByJT") 
         for srv in self.favorites[uid]:
             node = next((s for s in self.cache if srv in s['Name']), None)
             status = f"[ONLINE] {node.get('NumPlayers')}/70" if node else "[OFFLINE]"
@@ -254,6 +264,7 @@ class ARKCog(commands.Cog):
         if not stats: return await itxn.followup.send("No data recorded yet. Monitor the server first.")
         
         embed = discord.Embed(title=f"Analytics: {server_number}", color=discord.Color.blue())
+        embed.set_footer(text="Designed by pwnedByJT")
         embed.add_field(name="Current", value=f"`{stats['current']}`", inline=True)
         embed.add_field(name="Average", value=f"`{stats['avg']}`", inline=True)
         embed.add_field(name="Peak", value=f"`{stats['peak']}`", inline=True)
@@ -267,7 +278,7 @@ class Bot(commands.Bot):
         await cog.db.initialize()
         await self.add_cog(cog)
         await self.tree.sync()
-        print("System Online | No-Emote Mode")
+        print("System Online | No-Emote Mode | Enterprise Edition")
 
 if __name__ == "__main__":
     Bot().run(os.getenv("DISCORD_TOKEN"))
