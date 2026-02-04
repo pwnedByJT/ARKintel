@@ -1,7 +1,7 @@
 """
 Program name: ARK.py
 Description: Professional ARK: Survival Ascended monitoring suite with 
-             high-fidelity HUD dashboards and asynchronous data management.
+             restored classic HUD dashboards and asynchronous data management.
 Author: Justin Aaron Turner
 Updated: February 3, 2026
 """
@@ -65,7 +65,7 @@ class AnalyticsEngine:
             await db.commit()
 
 class GraphicsEngine:
-    """Renders high-fidelity tactical dashboards with dynamic sidebar accents."""
+    """Restores the classic 'Box' UI layout with dynamic sidebar color logic."""
     def __init__(self):
         try:
             self.f_hdr = ImageFont.truetype(Config.FONT_TITLE, 22)
@@ -75,39 +75,38 @@ class GraphicsEngine:
             self.f_hdr = self.f_lbl = self.f_val = ImageFont.load_default()
 
     def generate_dashboard(self, data: Dict, rates: str) -> io.BytesIO:
-        # Standard Classic Dimensions: 650x480
+        # Strict classic dimensions: 650x480
         width, height = 650, 480
         img = Image.new('RGB', (width, height), color=(26, 28, 32))
         draw = ImageDraw.Draw(img)
 
-        # Dynamic Sidebar Generation
-        # Assigns a unique random color for the left-hand accent bar per render
+        # Dynamic Left Sidebar (Restored classic look)
         sidebar_color = (random.randint(50, 255), random.randint(100, 255), random.randint(50, 255))
         draw.rectangle([(0, 0), (12, height)], fill=sidebar_color)
 
         # Header Definition
-        draw.text((40, 20), "OFFICIAL SERVER STATUS | AUTH: PWNEDBYJT", font=self.f_hdr, fill=(255, 255, 255))
+        draw.text((40, 20), "Official Server | Made by pwnedByJT", font=self.f_hdr, fill=(255, 255, 255))
 
         def draw_field(x, y, w, h, label, value):
             draw.text((x, y), label.upper(), font=self.f_lbl, fill=(200, 200, 200))
-            # Background box matching requested classic style
+            # Background box matching the requested classic style
             draw.rectangle([(x, y+25), (x+w, y+65)], fill=(38, 41, 46))
-            # Data value
+            # Data value placement
             draw.text((x+12, y+35), str(value), font=self.f_val, fill=(255, 255, 255))
 
-        # Core Layout Mapping (Matches Classic Box Layout)
+        # Core Layout Mapping (Exact replica of classic image)
         draw_field(40, 65, 570, 40, "Server Name", data.get('Name', 'Unknown'))
         
-        # Row 2: Operational Stats
+        # Row 2
         draw_field(40, 150, 150, 40, "Players Online", f"{data.get('NumPlayers', 0)}")
         draw_field(210, 150, 240, 40, "Map", data.get('MapName', 'Unknown'))
         draw_field(470, 150, 140, 40, "Day", data.get('DayTime', 'N/A'))
         
-        # Row 3: Network Diagnostics
+        # Row 3
         draw_field(40, 235, 280, 40, "IP", data.get('IP', '0.0.0.0'))
         draw_field(340, 235, 270, 40, "Port", data.get('Port', '7777'))
         
-        # Row 4: Environmental Variables
+        # Row 4
         draw_field(40, 320, 570, 40, "Server Rates", f"{rates}")
 
         buffer = io.BytesIO()
@@ -115,7 +114,7 @@ class GraphicsEngine:
         buffer.seek(0)
         return buffer
 
-# --- UTILITIES ---
+# --- AUTOCOMPLETE UTILITY ---
 async def server_autocomplete(itxn: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
     cog = itxn.client.get_cog("ARKCog")
     cache = cog.cache if cog else []
