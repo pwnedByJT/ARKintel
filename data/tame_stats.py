@@ -1,13 +1,14 @@
 """
 Module: data/tame_stats.py
-Description: ASA endgame/meta tame stat allocation database for alpha-tier PvP and boss content.
-             All stat targets are baseline estimates for fully mutated (20/20) lines at max
-             imprint on official rates. Edit values here as the meta evolves.
+Description: ASA endgame leveling guide database for alpha-tier PvP and boss content.
+             Focus: domestic level allocation strategies (88 pts post-hatch/tame),
+             key game-engine thresholds, and tribal meta tips.
+             Edit this file to update tame data as the meta shifts.
 Author: pwnedByJT
 """
 
 # ---------------------------------------------------------------------------
-# ALIAS MAP — normalize shorthand/typo inputs to canonical keys
+# ALIAS MAP — normalize shorthand / typo inputs to canonical keys
 # ---------------------------------------------------------------------------
 TAME_ALIASES: dict[str, str] = {
     # Giganotosaurus
@@ -15,15 +16,19 @@ TAME_ALIASES: dict[str, str] = {
     "giganoto": "giganotosaurus",
     "giganotosaurus": "giganotosaurus",
 
+    # Carcharodontosaurus
+    "carcha": "carcharodontosaurus",
+    "carch": "carcharodontosaurus",
+    "carcharodontosaurus": "carcharodontosaurus",
+
     # Therizinosaurus
     "theri": "therizinosaurus",
     "theriz": "therizinosaurus",
     "therizinosaurus": "therizinosaurus",
 
-    # Carcharodontosaurus
-    "carcha": "carcharodontosaurus",
-    "carch": "carcharodontosaurus",
-    "carcharodontosaurus": "carcharodontosaurus",
+    # Stegosaurus
+    "stego": "stegosaurus",
+    "stegosaurus": "stegosaurus",
 
     # Rex
     "rex": "rex",
@@ -36,553 +41,401 @@ TAME_ALIASES: dict[str, str] = {
     "yut": "yutyrannus",
     "yutyrannus": "yutyrannus",
 
-    # Daedon
-    "daed": "daedon",
-    "daedon": "daedon",
-    "pig": "daedon",
-
-    # Stegosaurus
-    "stego": "stegosaurus",
-    "stegosaurus": "stegosaurus",
-
-    # Rhyniognatha
-    "rhyno": "rhyniognatha",
-    "rhyniognatha": "rhyniognatha",
-    "rhynio": "rhyniognatha",
+    # Daeodon
+    "daeodon": "daeodon",
+    "daedon": "daeodon",
+    "daed": "daeodon",
+    "pig": "daeodon",
 
     # Pyromane
     "pyro": "pyromane",
     "pyromane": "pyromane",
 
-    # Megatherium
-    "meg": "megatherium",
-    "megatherium": "megatherium",
-    "giant sloth": "megatherium",
+    # Rhyniognatha
+    "rhyno": "rhyniognatha",
+    "rhynio": "rhyniognatha",
+    "rhyniognatha": "rhyniognatha",
+
+    # Quetzal
+    "quetz": "quetzal",
+    "quetzal": "quetzal",
+    "quetzalcoatlus": "quetzal",
 
     # Ankylosaurus
     "anky": "ankylosaurus",
     "ankylosaurus": "ankylosaurus",
 
-    # Doedicurus
-    "doed": "doedicurus",
-    "doedicurus": "doedicurus",
+    # Dunkleosteus
+    "dunkle": "dunkleosteus",
+    "dunk": "dunkleosteus",
+    "dunkleosteus": "dunkleosteus",
 
-    # Shadowmane
-    "shadow": "shadowmane",
-    "shadowmane": "shadowmane",
-
-    # Managarmr
-    "mana": "managarmr",
-    "managarmr": "managarmr",
+    # Paraceratherium
+    "paracer": "paraceratherium",
+    "para": "paraceratherium",
+    "paraceratherium": "paraceratherium",
 }
 
 
 # ---------------------------------------------------------------------------
 # TAME DATABASE
-# Structure per tame:
-#   display_name  : str  — pretty-printed name shown in embeds
-#   color         : int  — hex embed color (Red=aggressive, Green=tank, Blue=utility)
-#   roles         : dict — role name -> stat block (must include "General Meta")
 #
-# Stat block keys:
-#   priority      : str  — ordered stat priority e.g. "Melee > Health > Stamina"
-#   target_stats  : dict — stat label -> human-readable target string
-#   level_split   : str  — domestic point allocation guidance (88 pts post-tame)
-#   tips          : list[str] — pro tips, gear requirements, meta notes
+# Schema per entry:
+#   display_name  : str        — shown in embed title
+#   color         : int        — hex embed color
+#                               Red/Orange = aggressive | Green = tank/support
+#                               Blue = utility | Purple = specialist
+#   builds        : list[dict] — named build options, each has:
+#       name      : str        — e.g. "Full Aggro", "Balanced Raider"
+#       split     : str        — domestic point dump e.g. "73 → Melee | 15 → HP"
+#   thresholds    : list[str]  — game-engine caps, mechanics, optimal trigger points
+#   tips          : list[str]  — saddle reqs, synergy, tribe usage notes
 # ---------------------------------------------------------------------------
 TAME_DATABASE: dict[str, dict] = {
 
     # ===================================================================
-    # GIGANOTOSAURUS  — primary alpha PvP/raid mount
+    # GIGANOTOSAURUS  — alpha PvP / raid apex
     # ===================================================================
     "giganotosaurus": {
         "display_name": "Giganotosaurus",
-        "color": 0xE74C3C,  # Red — aggressive apex predator
-        "roles": {
-            "General Meta": {
-                "priority": "Melee > Health >> Stamina",
-                "target_stats": {
-                    "Health":    "38,000 – 45,000 HP  (fully mutated)",
-                    "Stamina":   "2,000 – 3,000  (minimal investment)",
-                    "Melee":     "1,800% – 2,400%  (20+20 mut stacks)",
-                    "Weight":    "Default — no domestic investment",
-                },
-                "level_split": (
-                    "44 pts → Melee  |  40 pts → Health  |  4 pts → Stamina\n"
-                    "Mutation priority: Melee line first (20 mat / 20 pat), then HP line."
-                ),
-                "tips": [
-                    "Ascendant saddle (90+ armor) is non-negotiable — unprotected Gigas melt.",
-                    "RAGE MECHANIC: Giga turns on rider if HP drops below ~40%. "
-                    "Keep it above 25% or dismount before it flips.",
-                    "Post-tame HP is drastically lower than wild HP (~17-18k at 150). "
-                    "All your effective HP comes from mutations + domestic levels.",
-                    "Full imprint grants ~30% bonus — never deploy an unimprinted Giga.",
-                    "Avoid Tek Caves — restricted and rider can be launched off on tight geometry.",
-                    "Counter: Carcharodontosaurus with blood-rage active can out-DPS a Giga. "
-                    "Never let a Carcha stack freely.",
-                ],
+        "color": 0xE74C3C,
+        "builds": [
+            {
+                "name": "Full Aggro (Raid)",
+                "split": "73 pts → Melee  |  15 pts → Health",
             },
-            "PvP Main": {
-                "priority": "Melee > Health >> Stamina",
-                "target_stats": {
-                    "Health":  "40,000+ HP",
-                    "Stamina": "2,500  (emergency retreat buffer)",
-                    "Melee":   "2,200%+ (absolute floor for alpha-tier)",
-                    "Weight":  "Default",
-                },
-                "level_split": (
-                    "50 pts → Melee  |  34 pts → Health  |  4 pts → Stamina\n"
-                    "PvP variant favors raw melee output over health padding."
-                ),
-                "tips": [
-                    "Keep a Yutyrannus courage-roar active for +25% melee during raids.",
-                    "Pair with a pocket Daedon for on-demand HP regen between engagements.",
-                    "Watch stamina drain during extended fights — dismount to regen if >60% depleted.",
-                    "Rider stays mounted: micro-manage HP via HUD; bail before rage threshold.",
-                ],
+            {
+                "name": "Balanced Raider",
+                "split": "50 pts → Melee  |  34 pts → Health  |  4 pts → Stamina",
             },
-            "Boss / Raiding": {
-                "priority": "Health > Melee > Stamina",
-                "target_stats": {
-                    "Health":  "45,000+ HP  (boss AOE survival)",
-                    "Stamina": "2,000",
-                    "Melee":   "1,800%+",
-                    "Weight":  "Default",
-                },
-                "level_split": (
-                    "44 pts → Health  |  40 pts → Melee  |  4 pts → Stamina\n"
-                    "Boss variant prioritizes survival over raw DPS."
-                ),
-                "tips": [
-                    "Bring backup Rexes — Gigas are NOT ideal for all boss arenas due to rage risk.",
-                    "ASC saddle MANDATORY for boss encounters.",
-                    "Broodmother: Gigas are banned in official boss arenas — use Megatheriums.",
-                    "Dragon Boss: use Therizinos (fire damage negation via melee).",
-                ],
-            },
-        },
+        ],
+        "thresholds": [
+            "RAGE: Giga turns on rider when HP falls below ~40% of its post-tame max. "
+            "Dismount or retreat before this threshold.",
+            "POST-TAME HP DROP: Wild Giga HP (~80k) tanks to ~17–18k after taming at lvl 150. "
+            "All usable HP comes from domestic levels + mutation stacks.",
+            "MUTATION CAP: 20 maternal + 20 paternal per stat line. Stack Melee first, then HP.",
+            "IMPRINT: Full imprint grants ~30% across all stats — mandatory before deployment.",
+            "Saddle armor directly reduces incoming damage. Sub-90 armor Gigas are fragile.",
+        ],
+        "tips": [
+            "Ascendant saddle (90+ armor) is non-negotiable. No exceptions.",
+            "Pocket a Daeodon rider behind the Giga — force-feed cooked meat to top HP between engagements.",
+            "Yutyrannus courage roar: +25% damage. Always have a Yuty buffing before first contact.",
+            "Counter-play: Carcha with full blood-rage stacks can out-DPS a Giga. Intercept Carchas first.",
+            "Never deploy in boss arenas where Giga is restricted (Broodmother arena).",
+        ],
     },
 
     # ===================================================================
-    # THERIZINOSAURUS  — boss DPS + harvest utility
-    # ===================================================================
-    "therizinosaurus": {
-        "display_name": "Therizinosaurus",
-        "color": 0xE67E22,  # Orange — aggressive utility
-        "roles": {
-            "General Meta": {
-                "priority": "Melee > Health > Weight",
-                "target_stats": {
-                    "Health":  "35,000 – 45,000 HP",
-                    "Stamina": "1,500  (moderate for multi-phase bosses)",
-                    "Melee":   "1,400% – 1,800%",
-                    "Weight":  "2,500 – 4,000  (harvest variant only)",
-                },
-                "level_split": (
-                    "44 pts → Melee  |  38 pts → Health  |  4 pts → Stamina  |  2 pts → Weight\n"
-                    "Harvest variant: 30 pts → Weight, 30 pts → Melee, 24 pts → Health, 4 pts → Stam."
-                ),
-                "tips": [
-                    "Ideal for Dragon Boss — melee bypasses fire damage reduction that kills Rexes.",
-                    "Highest damage-per-swing of any herbivore; outperforms Rexes in Dragon arena.",
-                    "Set attack mode: Delicate (fiber/berries), Regular (wood/thatch), Power (stone/hide).",
-                    "Saddle requirement: 70+ armor minimum; 90+ for boss runs.",
-                    "Full imprint mandatory — unimprinted Theris underperform significantly.",
-                ],
-            },
-            "Boss / Raiding": {
-                "priority": "Melee > Health > Stamina",
-                "target_stats": {
-                    "Health":  "40,000 – 50,000 HP",
-                    "Stamina": "2,000",
-                    "Melee":   "1,600%+",
-                    "Weight":  "Default",
-                },
-                "level_split": "50 pts → Melee  |  34 pts → Health  |  4 pts → Stamina",
-                "tips": [
-                    "Dragon Boss: 19+ Therizinos with 19k+ HP is the official alpha meta.",
-                    "Pair with Yutyrannus courage buff — mandatory for Dragon run.",
-                    "Avoid Melee-stacking in favor of balanced HP for multi-wipe prevention.",
-                ],
-            },
-            "Harvest / Utility": {
-                "priority": "Weight > Melee > Health",
-                "target_stats": {
-                    "Health":  "20,000 – 25,000 HP",
-                    "Stamina": "Default",
-                    "Melee":   "600% – 900%  (harvest efficiency)",
-                    "Weight":  "4,000 – 6,000",
-                },
-                "level_split": "44 pts → Weight  |  30 pts → Melee  |  14 pts → Health",
-                "tips": [
-                    "Use Delicate mode for berries/fiber; Power mode for stone harvest.",
-                    "Combine with Ankylosaurus/Doed for multi-resource trips.",
-                    "Weight Theris don't need mutations — breed for weight-line tames separately.",
-                ],
-            },
-        },
-    },
-
-    # ===================================================================
-    # CARCHARODONTOSAURUS  — blood-rage DPS monster
+    # CARCHARODONTOSAURUS  — blood-rage DPS scaler
     # ===================================================================
     "carcharodontosaurus": {
         "display_name": "Carcharodontosaurus",
-        "color": 0xC0392B,  # Dark Red — highest threat predator
-        "roles": {
-            "General Meta": {
-                "priority": "Melee > Health > Stamina",
-                "target_stats": {
-                    "Health":  "30,000 – 40,000 HP",
-                    "Stamina": "2,500  (sustain blood-rage stacking)",
-                    "Melee":   "1,500% – 2,000%  (base; rage multiplies this)",
-                    "Weight":  "Default",
-                },
-                "level_split": (
-                    "44 pts → Melee  |  40 pts → Health  |  4 pts → Stamina\n"
-                    "Blood-rage mechanic multiplies effective melee — invest more in survivability."
-                ),
-                "tips": [
-                    "BLOOD RAGE: Each kill grants a stacking melee/speed buff. "
-                    "At max stacks Carcha's DPS surpasses Giganotosaurus.",
-                    "Rage stacks decay — keep chaining kills to maintain buff in extended fights.",
-                    "Hard counter to Gigas when rage-stacked. Route Carcha into enemy tame lines first.",
-                    "Can harvest organic polymer (jellyfish) and is immune to jellyfish damage.",
-                    "Saddle requirement: 70+ armor; ASC if available.",
-                    "Weak against coordinated dismount attempts — protect the rider.",
-                ],
+        "color": 0xC0392B,
+        "builds": [
+            {
+                "name": "Blood Frenzied (Pure DPS)",
+                "split": "88 pts → Melee  (rage mechanic makes HP secondary)",
             },
-            "PvP Main": {
-                "priority": "Melee > Stamina > Health",
-                "target_stats": {
-                    "Health":  "28,000 – 35,000 HP",
-                    "Stamina": "3,000  (sustain aggression chains)",
-                    "Melee":   "1,800%+  (pre-rage base)",
-                    "Weight":  "Default",
-                },
-                "level_split": "50 pts → Melee  |  30 pts → Health  |  8 pts → Stamina",
-                "tips": [
-                    "Open with 3-5 kills to pre-stack rage before engaging primary targets.",
-                    "Stay mobile — speed buff from rage makes kiting very effective.",
-                    "Combo with Yutyrannus fear roar to freeze enemy mounts while Carcha shreds.",
-                ],
+            {
+                "name": "Sustained Aggressor",
+                "split": "70 pts → Melee  |  14 pts → Health  |  4 pts → Stamina",
             },
-        },
+        ],
+        "thresholds": [
+            "BLOOD RAGE: Each kill grants stacking Melee + Speed buff. Caps at ~10–15 stacks. "
+            "At max stacks, effective DPS exceeds a Giganotosaurus.",
+            "RAGE DECAY: Stacks bleed off over time. Must chain kills to maintain the buff — "
+            "avoid long gaps between targets.",
+            "Speed increases with each rage stack — kiting becomes extremely effective at cap.",
+            "IMPRINT: +30% stat bonus at full imprint. Never deploy unimprinted.",
+        ],
+        "tips": [
+            "Pre-stack rage on nearby wild dinos (Parasaurs, Trikes) before engaging enemy tames.",
+            "Use Yutyrannus fear roar to scatter enemy tames and create easy kill-chain targets.",
+            "Hard counter to Gigas — route Carcha into enemy Giga pack first, not their riders.",
+            "Saddle: 70+ armor minimum. ASC if available — Carcha needs to survive long enough to stack.",
+            "Protect the rider — coordinated dismount attempts shut down Carcha.",
+        ],
     },
 
     # ===================================================================
-    # REX  — boss army staple
+    # THERIZINOSAURUS  — Dragon boss DPS + harvest
     # ===================================================================
-    "rex": {
-        "display_name": "Rex (Tyrannosaurus)",
-        "color": 0xD35400,  # Dark Orange
-        "roles": {
-            "General Meta": {
-                "priority": "Health > Melee > Stamina",
-                "target_stats": {
-                    "Health":  "30,000 – 40,000 HP  (19k+ is boss minimum)",
-                    "Stamina": "1,500  (enough for full boss phase)",
-                    "Melee":   "1,000% – 1,400%",
-                    "Weight":  "Default",
-                },
-                "level_split": (
-                    "44 pts → Health  |  40 pts → Melee  |  4 pts → Stamina\n"
-                    "Boss meta: 19k HP floor is hard minimum for alpha-tier boss runs."
-                ),
-                "tips": [
-                    "19k HP is the widely accepted alpha tribe minimum for boss fights. "
-                    "Below this, a single AOE wipe can kill your entire army.",
-                    "Saddle requirement: 90+ armor MANDATORY for alpha boss runs.",
-                    "Rex army composition: 18 Rexes + 1 Yutyrannus = standard alpha boss meta.",
-                    "Dragon Boss: REPLACE Rexes with Therizinos — fire damage will destroy Rexes.",
-                    "Imprint: +30% stats when fully imprinted. Never bring unimprinted.",
-                    "Mutation priority: HP line (survive AOE), then Melee.",
-                ],
+    "therizinosaurus": {
+        "display_name": "Therizinosaurus",
+        "color": 0xE67E22,
+        "builds": [
+            {
+                "name": "Dragon Slayer (Boss)",
+                "split": "88 pts → Melee  (damage output is everything in Dragon arena)",
             },
-            "Boss / Raiding": {
-                "priority": "Health > Melee > Stamina",
-                "target_stats": {
-                    "Health":  "40,000+ HP  (alpha tier)",
-                    "Stamina": "1,500",
-                    "Melee":   "1,200%+",
-                    "Weight":  "Default",
-                },
-                "level_split": "50 pts → Health  |  34 pts → Melee  |  4 pts → Stamina",
-                "tips": [
-                    "Alpha Broodmother: 19 Rexes minimum. 30k+ HP recommended.",
-                    "Alpha Megapithecus: standard Rex army works well.",
-                    "Alpha Dragon: DO NOT use Rexes. Use Therizinos.",
-                    "Overseer: Rexes + Yutyrannus is viable on Island.",
-                ],
+            {
+                "name": "Balanced Fighter",
+                "split": "60 pts → Melee  |  24 pts → Health  |  4 pts → Stamina",
             },
-        },
+            {
+                "name": "Berry Farmer",
+                "split": "60 pts → Weight  |  20 pts → Melee  |  8 pts → Health",
+            },
+        ],
+        "thresholds": [
+            "VEGGIE CAKE: Each cake heals a flat ~2,000 HP. At 21,000 HP base, one cake per "
+            "cycle is sustainable — going far above this wastes cake efficiency per point invested.",
+            "ATTACK MODES: Delicate (berries/fiber), Regular (wood/thatch/meat), "
+            "Power (stone/hide). Swap with RMB before each gather type.",
+            "FIRE RESISTANCE: Theri melee damage bypasses Dragon's fire resistance that kills Rexes.",
+            "IMPRINT: Full imprint mandatory for boss runs — +30% across stats.",
+            "Saddle: 70+ armor minimum; 90+ for alpha Dragon.",
+        ],
+        "tips": [
+            "MANDATORY for Dragon Boss. 19+ Therizinos + 1 Yutyrannus = alpha Dragon meta.",
+            "Pair with Yuty courage roar — +25% damage multiplier throughout the fight.",
+            "Never bring Rexes to Dragon — fire will destroy them. Theri or nothing.",
+            "Farm Theris double as boss fighters if leveled for Melee. Breed separate weight lines.",
+            "Highest damage-per-swing of any herbivore when fully mutated.",
+        ],
     },
 
     # ===================================================================
-    # YUTYRANNUS  — commander/support (mandatory boss support)
-    # ===================================================================
-    "yutyrannus": {
-        "display_name": "Yutyrannus",
-        "color": 0x3498DB,  # Blue — support/utility
-        "roles": {
-            "General Meta": {
-                "priority": "Health > Stamina > Melee",
-                "target_stats": {
-                    "Health":  "30,000 – 50,000 HP  (tank boss splash)",
-                    "Stamina": "3,000 – 4,000  (sustain multiple roars)",
-                    "Melee":   "700% – 1,000%  (secondary priority)",
-                    "Weight":  "Default",
-                },
-                "level_split": (
-                    "44 pts → Health  |  30 pts → Stamina  |  14 pts → Melee\n"
-                    "Stamina is critical — Yuty needs to sustain roars throughout the entire boss fight."
-                ),
-                "tips": [
-                    "COURAGE ROAR: Grants +25% damage buff to all nearby tames + feared enemies flee.",
-                    "FEAR ROAR: Makes wild creatures flee. Invaluable for controlling adds in boss arenas.",
-                    "1 Yutyrannus per boss team = mandatory in all alpha-tier boss strategies.",
-                    "Rider MUST spam courage roar on cooldown throughout the entire fight.",
-                    "Position Yuty behind the Rex army — it provides buff at range, not frontline.",
-                    "Yuty does NOT need ASC saddle — 70+ armor is sufficient for support role.",
-                    "Keep Daedon nearby — Yuty takes splash damage and needs heals during Broodmother.",
-                ],
-            },
-            "Boss / Raiding": {
-                "priority": "Health > Stamina > Melee",
-                "target_stats": {
-                    "Health":  "40,000 – 55,000 HP",
-                    "Stamina": "4,000+",
-                    "Melee":   "800%",
-                    "Weight":  "Default",
-                },
-                "level_split": "44 pts → Health  |  40 pts → Stamina  |  4 pts → Melee",
-                "tips": [
-                    "Invest heavily in stamina — Alpha Megapithecus fight requires sustained roaring.",
-                    "Dragon Boss: Yuty IS viable alongside Therizinos; buff is still critical.",
-                ],
-            },
-        },
-    },
-
-    # ===================================================================
-    # DAEDON  — tribal healer
-    # ===================================================================
-    "daedon": {
-        "display_name": "Daedon",
-        "color": 0x2ECC71,  # Green — healer/support
-        "roles": {
-            "General Meta": {
-                "priority": "Health > Food > Stamina",
-                "target_stats": {
-                    "Health":  "25,000 – 40,000 HP  (absorb splash while healing)",
-                    "Food":    "12,000+  (sustain healing output without force-feeding)",
-                    "Stamina": "1,500  (minimal)",
-                    "Melee":   "Default — no investment",
-                },
-                "level_split": (
-                    "44 pts → Health  |  30 pts → Food  |  14 pts → Stamina\n"
-                    "Food investment critical — Daedon burns food extremely fast while healing."
-                ),
-                "tips": [
-                    "HEALING PULSE: Heals all nearby creatures for 800 HP/tick — "
-                    "drains food ~2,000/sec at full heal rate.",
-                    "Bring cooked meat stacks or raw prime — force feed to maintain healing uptime.",
-                    "Place Daedon at center of Rex army during boss for maximum heal reach.",
-                    "1-2 Daedons per boss run; 2 recommended for alpha-tier reliability.",
-                    "Healing activates only when creature is below 100% HP. Pre-stage during adds phase.",
-                    "Force Heal (enable healing toggle) to pre-position before boss damage spikes.",
-                    "Daedon does NOT need combat stats — full utility build only.",
-                ],
-            },
-            "Boss / Raiding": {
-                "priority": "Health > Food > Stamina",
-                "target_stats": {
-                    "Health":  "40,000+ HP",
-                    "Food":    "15,000+",
-                    "Stamina": "Default",
-                    "Melee":   "Default",
-                },
-                "level_split": "44 pts → Health  |  40 pts → Food  |  4 pts → Stamina",
-                "tips": [
-                    "Alpha boss: bring 500+ cooked meat per Daedon.",
-                    "Rider should exclusively force-feed Daedon — do not dismount.",
-                    "Enable heal pulse before boss spawns to avoid reaction delay.",
-                ],
-            },
-        },
-    },
-
-    # ===================================================================
-    # STEGOSAURUS  — soaker / turret-walking / utility
+    # STEGOSAURUS  — soaker / rider carry / platform
     # ===================================================================
     "stegosaurus": {
         "display_name": "Stegosaurus",
-        "color": 0x27AE60,  # Dark Green — tank/soaker
-        "roles": {
-            "General Meta": {
-                "priority": "Health > Stamina > Weight",
-                "target_stats": {
-                    "Health":  "25,000 – 40,000 HP  (soak ammo / absorb shots)",
-                    "Stamina": "2,500  (retreat and repeat)",
-                    "Melee":   "400% – 700%  (stego plate damage on hit)",
-                    "Weight":  "1,500 – 3,000  (carry soaked ammo loot)",
-                },
-                "level_split": (
-                    "44 pts → Health  |  30 pts → Stamina  |  10 pts → Weight  |  4 pts → Melee\n"
-                    "Soaker role: maximize HP and stamina for repeated turret-walk attempts."
-                ),
-                "tips": [
-                    "PLATE MODES: Hard (damage reduction, slower), Sharpened (damage spike on hit), "
-                    "Rounded (knockback). Use Hard mode when soaking; Sharpened for PvP.",
-                    "Stego natural armor plating provides passive damage reduction — "
-                    "stack HP and rely on the reduction to stretch survival.",
-                    "Ideal for solo soaking auto-turrets — tank turrets while team demolishes.",
-                    "Platform saddle allows structure placement for raiding operations.",
-                    "Saddle: 60+ armor sufficient for soaker role; 90+ for advanced scenarios.",
-                    "Pair with Yutyrannus fear roar to clear wild tames from soak path.",
-                ],
+        "color": 0x27AE60,
+        "builds": [
+            {
+                "name": "Hardened Plate Tank (Soaker)",
+                "split": "80 pts → Health  |  8 pts → Stamina  (absolute HP is all that matters)",
             },
-            "Soaker": {
-                "priority": "Health > Stamina > Melee",
-                "target_stats": {
-                    "Health":  "40,000+ HP  (absolute priority)",
-                    "Stamina": "3,000  (walk-in, walk-out, repeat)",
-                    "Melee":   "Default",
-                    "Weight":  "Default",
-                },
-                "level_split": "60 pts → Health  |  24 pts → Stamina  |  4 pts → Melee",
-                "tips": [
-                    "Rotate 3+ Stegos to prevent any single death — turrets reload between passes.",
-                    "Hard plate mode ONLY when soaking. Switch after if going offensive.",
-                    "Count turret shots to estimate ammo depletion — coordinate with demolition team.",
-                ],
+            {
+                "name": "Rider Carry",
+                "split": "60 pts → Health  |  24 pts → Stamina  |  4 pts → Weight",
             },
-        },
+        ],
+        "thresholds": [
+            "PLATE MODE — Hard: Passive damage reduction. Use this mode 100% of the time when soaking.",
+            "PLATE MODE — Sharpened: Deals damage to attackers on contact. Switch for PvP offense.",
+            "PLATE MODE — Rounded: Knockback on hit. Situational — use to push enemies off doors/ramps.",
+            "Stego has natural damage reduction from plating — HP investment stretches further than "
+            "on other tames. Do not underestimate a well-leveled Stego.",
+            "Platform saddle enables structure deployment — turrets, beds, fabricators on back.",
+        ],
+        "tips": [
+            "Turret soak rotation: cycle 3+ Stegos. One walks while two regen. Track turret ammo.",
+            "Hard Plate mode ONLY when soaking turrets. Never forget to switch modes.",
+            "Coordinate with demolition team — give them breach window as Stego soaks last shots.",
+            "Stego pairs well with Paracer for multi-layer forward assault (Paracer holds turrets, "
+            "Stego soaks incoming fire).",
+            "Saddle: 60+ armor for soaking. 90+ for active PvP engagements.",
+        ],
     },
 
     # ===================================================================
-    # MEGATHERIUM  — Broodmother specialist
+    # REX  — universal boss army staple
     # ===================================================================
-    "megatherium": {
-        "display_name": "Megatherium",
-        "color": 0x9B59B6,  # Purple — specialist boss role
-        "roles": {
-            "General Meta": {
-                "priority": "Melee > Health > Stamina",
-                "target_stats": {
-                    "Health":  "25,000 – 35,000 HP",
-                    "Stamina": "2,000",
-                    "Melee":   "1,200% – 1,600%  (pre-bug-bonus; ~3,000%+ effective vs insects)",
-                    "Weight":  "Default",
-                },
-                "level_split": (
-                    "44 pts → Melee  |  40 pts → Health  |  4 pts → Stamina\n"
-                    "Bug-kill bonus multiplies effective melee — melee investment returns "
-                    "250%+ bonus damage in Broodmother arena."
-                ),
-                "tips": [
-                    "BUG BONUS: Killing an insect grants ~2.5x melee multiplier buff temporarily. "
-                    "Broodmother's spiderlings constantly trigger this — Megatherium DPS is unmatched there.",
-                    "MANDATORY for alpha Broodmother — no other tame compares in that arena.",
-                    "Saddle: 70+ armor minimum; 90+ for alpha tier.",
-                    "Pair with Yutyrannus courage roar — +25% damage stacks additively with bug bonus.",
-                    "NOT recommended for Dragon or Megapithecus — use Rex/Theri for those.",
-                    "Gathers organic polymer passively; useful for organic poly farming runs.",
-                ],
+    "rex": {
+        "display_name": "Rex (Tyrannosaurus)",
+        "color": 0xD35400,
+        "builds": [
+            {
+                "name": "Alpha Boss Runner",
+                "split": "Dump HP until base reaches ~19,000, then 100% Melee for remaining pts.",
             },
-            "Boss / Raiding": {
-                "priority": "Melee > Health > Stamina",
-                "target_stats": {
-                    "Health":  "30,000 – 40,000 HP",
-                    "Stamina": "2,000",
-                    "Melee":   "1,500%+",
-                    "Weight":  "Default",
-                },
-                "level_split": "50 pts → Melee  |  34 pts → Health  |  4 pts → Stamina",
-                "tips": [
-                    "Alpha Broodmother: 19 Megatheriums + 1 Yutyrannus = standard alpha meta.",
-                    "Ensure all Megatheriums are fully imprinted — bonus is critical here.",
-                ],
+            {
+                "name": "Pure DPS Rex",
+                "split": "88 pts → Melee  (only viable with very high mutation HP line)",
             },
-        },
+        ],
+        "thresholds": [
+            "19,000 HP: Alpha-tier tribe minimum before entering any boss arena. "
+            "Below this, a single AOE wipe kills your entire army.",
+            "ARMY COMPOSITION: 18 Rexes + 1 Yutyrannus = standard alpha boss team.",
+            "DRAGON EXCEPTION: Do NOT bring Rexes to Dragon Boss. Fire destroys them. Use Therizinos.",
+            "IMPRINT: Full imprint = +30% stats. Every unimprinted Rex is a liability.",
+            "Saddle: 90+ armor MANDATORY for alpha boss. No exceptions.",
+        ],
+        "tips": [
+            "Mutation priority: HP line first (reach 19k floor), then Melee. Never skip HP.",
+            "Alpha Megapithecus and Alpha Broodmother: standard Rex army works. Dragon: swap to Theri.",
+            "Use Daeodon positioned center-mass of Rex army for continuous AoE healing.",
+            "Position Yutyrannus at the rear — spam courage roar on cooldown for entire fight duration.",
+            "Keep 1–2 backup Rexes available. Losing 2+ in a run is a wipe risk.",
+        ],
     },
 
     # ===================================================================
-    # RHYNIOGNATHA  — stealth saboteur / unique utility
+    # YUTYRANNUS  — battle commander / courage buffer
     # ===================================================================
-    "rhyniognatha": {
-        "display_name": "Rhyniognatha",
-        "color": 0x1ABC9C,  # Teal — unique/stealth utility
-        "roles": {
-            "General Meta": {
-                "priority": "Health > Stamina > Melee",
-                "target_stats": {
-                    "Health":  "15,000 – 25,000 HP",
-                    "Stamina": "3,000+  (sustained flight and repositioning)",
-                    "Melee":   "800% – 1,200%",
-                    "Weight":  "Default",
-                },
-                "level_split": (
-                    "40 pts → Stamina  |  30 pts → Health  |  18 pts → Melee\n"
-                    "Stealth utility role — stamina enables sustained aerial operations."
-                ),
-                "tips": [
-                    "IMPLANT MECHANIC: Can implant larva inside players/tames — "
-                    "triggers damage over time effect. Unique sabotage tool in PvP.",
-                    "Immune to most trap-based containment — bypasses gates via flight.",
-                    "Fast aerial mount for scouting, escaping, and infiltration.",
-                    "NOT a frontline DPS mount — strictly utility/disruption role.",
-                    "Breed for high base stamina; most domestic levels into stamina.",
-                    "Saddle provides rider protection — prioritize getting one early.",
-                ],
+    "yutyrannus": {
+        "display_name": "Yutyrannus",
+        "color": 0x3498DB,
+        "builds": [
+            {
+                "name": "Battle Commander (Boss)",
+                "split": "60 pts → Stamina  |  24 pts → Health  |  4 pts → Melee",
             },
-        },
+            {
+                "name": "Roar Support (Sustained)",
+                "split": "80 pts → Stamina  |  8 pts → Health  (pure uptime on roars)",
+            },
+        ],
+        "thresholds": [
+            "COURAGE ROAR: +25% damage buff applied to all nearby tames + fear effect on wild creatures. "
+            "Mandatory uptime for every boss fight.",
+            "ROAR COOLDOWN: ~10 seconds between courage roars. Rider must spam this on cooldown "
+            "for the full fight duration — do not neglect it.",
+            "Stamina is the gating stat. Running out mid-fight means a damage gap. "
+            "Invest stamina heavily.",
+            "Losing Yuty mid-fight effectively cuts your army's DPS by 25%.",
+        ],
+        "tips": [
+            "Position: rear of the Rex/Theri army. It buffs at range — never frontline.",
+            "Rider job is 100% roar management. Do not engage in combat — keep Yuty alive.",
+            "Saddle: 70+ armor sufficient. Yuty is support, not a tank.",
+            "Pair with Daeodon nearby — Yuty takes splash damage during Broodmother adds phase.",
+            "Fear Roar: scatter adds (spiderlings, Megapithecus boulders can't be feared, but "
+            "wild dinos around boss entrances can be cleared quickly).",
+        ],
     },
 
     # ===================================================================
-    # PYROMANE  — fire AOE / sustained damage dealer
+    # DAEODON  — tribal healer / passive AoE sustain
+    # ===================================================================
+    "daeodon": {
+        "display_name": "Daeodon",
+        "color": 0x2ECC71,
+        "builds": [
+            {
+                "name": "Sustain Healer",
+                "split": "50 pts → Food  |  34 pts → Health  |  4 pts → Stamina",
+            },
+            {
+                "name": "Emergency Heal Bomb",
+                "split": "88 pts → Food  (max pulse uptime; HP comes from mutations only)",
+            },
+        ],
+        "thresholds": [
+            "HEAL PULSE: Heals all nearby creatures at ~800 HP/tick. Drains Food at ~2,000/sec "
+            "at full output. A 0-Food-investment Daeodon burns out in seconds.",
+            "HEAL TRIGGER: Pulse only fires when nearby creatures are below 100% HP. "
+            "Enable before boss phases, not after damage starts.",
+            "FOOD SCALE: Each domestic pt in Food meaningfully extends pulse uptime. "
+            "Food investment is directly proportional to sustained healing.",
+            "2 Daedons per boss team is the alpha-tier standard — redundancy covers the event "
+            "one runs dry mid-fight.",
+        ],
+        "tips": [
+            "Bring 500+ cooked meat per Daeodon into boss arenas for force-feeding mid-fight.",
+            "Enable heal pulse BEFORE boss spawns — not after. Reaction delay costs lives.",
+            "Rider job: exclusively force-feed Daeodon. Never dismount for any reason.",
+            "Position Daeodon at the center of the Rex/Theri army for maximum AoE heal radius.",
+            "Daeodon needs zero Melee investment. It is a pure utility tame.",
+        ],
+    },
+
+    # ===================================================================
+    # PYROMANE  — fire-breath AOE raider
     # ===================================================================
     "pyromane": {
         "display_name": "Pyromane",
-        "color": 0xE67E22,  # Orange — fire damage specialist
-        "roles": {
-            "General Meta": {
-                "priority": "Melee > Health > Stamina",
-                "target_stats": {
-                    "Health":  "20,000 – 30,000 HP",
-                    "Stamina": "2,000",
-                    "Melee":   "1,200% – 1,600%  (amplifies fire breath damage)",
-                    "Weight":  "Default",
-                },
-                "level_split": (
-                    "44 pts → Melee  |  40 pts → Health  |  4 pts → Stamina\n"
-                    "Fire breath damage scales with melee — prioritize heavily."
-                ),
-                "tips": [
-                    "Fire breath deals sustained DOT (burn) — melee amplifies both impact and burn ticks.",
-                    "Highly effective against wooden and thatch structures in raids.",
-                    "AOE fire spread — position carefully to avoid friendly fire on structures.",
-                    "Pyromane is a relatively new meta tame; data may evolve with patches.",
-                    "Saddle: 70+ armor recommended for frontline use.",
-                    "Combine with Giga or Carcha for fire-softening before melee engagement.",
-                ],
+        "color": 0xF39C12,
+        "builds": [
+            {
+                "name": "Incendiary Raider",
+                "split": "88 pts → Melee  (fire breath DOT scales directly with Melee)",
             },
-            "PvP Main": {
-                "priority": "Melee > Stamina > Health",
-                "target_stats": {
-                    "Health":  "25,000 HP",
-                    "Stamina": "2,500  (sustained fire breath)",
-                    "Melee":   "1,500%+",
-                    "Weight":  "Default",
-                },
-                "level_split": "50 pts → Melee  |  30 pts → Stamina  |  8 pts → Health",
-                "tips": [
-                    "Strafe around structures — fire breath has arc coverage.",
-                    "Pair with Carcha: Pyromane softens targets, Carcha closes for melee finish.",
-                ],
+            {
+                "name": "Frontline Bruiser",
+                "split": "60 pts → Melee  |  24 pts → Health  |  4 pts → Stamina",
             },
-        },
+        ],
+        "thresholds": [
+            "FIRE BREATH DOT: Each burn tick scales with Melee. 100% Melee investment = maximum "
+            "sustained damage output on structures and players.",
+            "AOE RADIUS: Fire spread is a fixed cone — Melee changes tick damage, not spread width.",
+            "STRUCTURE DAMAGE: Pyromane excels at wood and thatch. Metal requires sustained exposure.",
+            "Pyromane is a newer ASA tame — verify current damage values match latest patch.",
+        ],
+        "tips": [
+            "Prioritize wooden and thatch structure destruction before switching to stone/metal targets.",
+            "AOE fire can friendly-fire your own structures — position carefully during base raids.",
+            "Combo: Pyromane burns the target; Carcha closes for melee finish while burn ticks continue.",
+            "Saddle: 70+ armor for frontline. Keep backup rider for dismount recovery.",
+            "Pair with Giga for sequential breaches — Pyromane opens, Giga clears defenders.",
+        ],
+    },
+
+    # ===================================================================
+    # RHYNIOGNATHA  — aerial infiltrator / saboteur
+    # ===================================================================
+    "rhyniognatha": {
+        "display_name": "Rhyniognatha",
+        "color": 0x1ABC9C,
+        "builds": [
+            {
+                "name": "Shadow Infiltrator",
+                "split": "88 pts → Stamina  (flight duration is everything)",
+            },
+            {
+                "name": "Combat Flyer",
+                "split": "60 pts → Stamina  |  24 pts → Melee  |  4 pts → Health",
+            },
+        ],
+        "thresholds": [
+            "IMPLANT MECHANIC: Can implant larva inside players and tames — applies a "
+            "damage-over-time effect. Unique PvP disruption tool with no direct counter.",
+            "AERIAL SPEED: Among the fastest fliers in ASA. Raw speed advantage is in tame "
+            "selection (high-level wild), not domestic level investment.",
+            "Stamina gates all operations — a grounded Rhynio is dead. Never let stamina deplete.",
+            "Does not have a conventional saddle slot in all builds — verify current ASA status.",
+        ],
+        "tips": [
+            "Primary target: enemy Yutyrannus. Implanting the Yuty shuts down the enemy's courage buff.",
+            "Secondary target: enemy Daedon riders — dismount or DoT the healer to collapse their sustain.",
+            "Use for scouting: fast enough to survey enemy bases and escape before turrets render.",
+            "Rhynio is NOT a frontline DPS mount. One focused enemy counter = dead Rhynio.",
+            "Breed for the highest base stamina you can find — this is your stat line to prioritize.",
+        ],
+    },
+
+    # ===================================================================
+    # QUETZAL  — aerial platform / logistics / FOB
+    # ===================================================================
+    "quetzal": {
+        "display_name": "Quetzal",
+        "color": 0x16A085,
+        "builds": [
+            {
+                "name": "Sky Freighter",
+                "split": "80 pts → Weight  |  8 pts → Stamina",
+            },
+            {
+                "name": "Platform FOB",
+                "split": "60 pts → Weight  |  24 pts → Stamina  |  4 pts → Health",
+            },
+        ],
+        "thresholds": [
+            "WEIGHT SCALING: Each point in Weight adds to the base weight multiplied by tame bonus. "
+            "Weight investment is the #1 return-on-investment stat for Quetzal.",
+            "PLATFORM SADDLE: Allows permanent structure placement on Quetzal's back — "
+            "turrets, generators, vaults, forges, and beds are all viable.",
+            "Quetzal does NOT eat while in flight if rider-controlled. Land periodically or "
+            "leave on wander to avoid starvation.",
+            "Slow flight speed means heavy turret fire exposure. Stamp requires Stamina investment "
+            "for retreat maneuvers.",
+        ],
+        "tips": [
+            "Place 10–20 auto-turrets on platform saddle for a mobile raid support platform.",
+            "Use with Ankylosaurus: hover Quetzal low while Anky rider mines — "
+            "transfer metal directly to Quetzal inventory between swings.",
+            "Pair with Argentavis (weight-leveled) for rapid metal runs — "
+            "Argy transfers metal to hovering Quetz.",
+            "FOB setup: place a bed + generator + industrial forge on Quetzal for a "
+            "forward operating base during extended siege operations.",
+            "Never invest in Melee — Quetzal is a logistics mount, not a combat mount.",
+        ],
     },
 
     # ===================================================================
@@ -590,194 +443,106 @@ TAME_DATABASE: dict[str, dict] = {
     # ===================================================================
     "ankylosaurus": {
         "display_name": "Ankylosaurus",
-        "color": 0x7F8C8D,  # Gray — resource utility
-        "roles": {
-            "General Meta": {
-                "priority": "Weight > Melee > Health",
-                "target_stats": {
-                    "Health":  "15,000 – 20,000 HP  (survivability en route)",
-                    "Stamina": "Default",
-                    "Melee":   "600% – 1,000%  (harvest yield multiplier)",
-                    "Weight":  "5,000 – 8,000  (carry heavy ore loads)",
-                },
-                "level_split": (
-                    "50 pts → Weight  |  24 pts → Melee  |  14 pts → Health\n"
-                    "Harvest role: weight is king. Melee secondary for yield."
-                ),
-                "tips": [
-                    "Harvests metal, crystal, obsidian, and oil at high efficiency.",
-                    "Tail swing has small attack radius — position directly on nodes.",
-                    "Requires an Argentavis or Quetzal to transport (too slow to self-deliver).",
-                    "Anky does NOT need mutations for a farm role — straight breed for weight stat.",
-                    "Pair with Doedicurus for full stone + metal farming operation.",
-                    "Use on metal-rich mountains: Volcano (Island), mountain ranges (Aberration).",
-                ],
+        "color": 0x7F8C8D,
+        "builds": [
+            {
+                "name": "Metal Mule",
+                "split": "80 pts → Weight  |  8 pts → Melee  (pure carry volume)",
             },
-            "Harvest / Utility": {
-                "priority": "Weight > Melee > Health",
-                "target_stats": {
-                    "Health":  "12,000 HP",
-                    "Stamina": "Default",
-                    "Melee":   "800%+",
-                    "Weight":  "8,000+",
-                },
-                "level_split": "60 pts → Weight  |  20 pts → Melee  |  8 pts → Health",
-                "tips": [
-                    "Dedicated farm Anky: max weight line tames only.",
-                    "Stack x Ankys for raid supply — 3 trips fills a vault with metal.",
-                ],
+            {
+                "name": "Yield Maximizer",
+                "split": "50 pts → Weight  |  38 pts → Melee  (higher ore per swing, fewer trips)",
             },
-        },
+        ],
+        "thresholds": [
+            "WEIGHT CAP: Determines trip efficiency. Higher weight = fewer return trips = "
+            "more metal per hour. This is the primary stat.",
+            "MELEE scales harvest yield per tail swing — every point increases ore count per hit.",
+            "Anky cannot carry itself (too slow, no saddle air transport). MUST be ferried "
+            "via Quetzal platform or Argentavis carry.",
+            "Stamina investment is wasted — Anky sits on a platform or gets carried.",
+        ],
+        "tips": [
+            "Hover Quetzal above metal nodes — Anky rider mines, transfers to Quetz inventory "
+            "on the fly. Most efficient metal farming loop in the game.",
+            "3 Anky trips to a Quetzal-ferried vault fills it with enough metal for a raid supply.",
+            "Anky does NOT need mutations for farm role. Breed high base weight lines only.",
+            "Works on metal, crystal, obsidian, oil, and stone nodes. Best on metal-rich mountains.",
+            "Pair Anky + Dunkleosteus for a complete surface-and-deep resource pipeline.",
+        ],
     },
 
     # ===================================================================
-    # DOEDICURUS  — stone / flint harvest specialist
+    # DUNKLEOSTEUS  — deep-sea oil / silica pearl harvesting
     # ===================================================================
-    "doedicurus": {
-        "display_name": "Doedicurus",
-        "color": 0x95A5A6,  # Light Gray — resource utility
-        "roles": {
-            "General Meta": {
-                "priority": "Weight > Melee > Health",
-                "target_stats": {
-                    "Health":  "10,000 – 15,000 HP",
-                    "Stamina": "Default  (Doed rolls — no stamina drain)",
-                    "Melee":   "500% – 800%  (stone yield multiplier)",
-                    "Weight":  "5,000 – 8,000",
-                },
-                "level_split": (
-                    "60 pts → Weight  |  20 pts → Melee  |  8 pts → Health\n"
-                    "Pure farm role — weight dominates."
-                ),
-                "tips": [
-                    "Stone harvest best in class — no other creature comes close for stone efficiency.",
-                    "ROLLING MECHANIC: Doed rolls into a ball for defense; also allows cargo transport.",
-                    "Pair with Argentavis carry to transport Doed to remote stone-rich zones.",
-                    "Use near base for auto-stone collection from rock nodes.",
-                    "Does NOT need mutations — breed for a clean weight stat line.",
-                    "Combine with Ankylosaurus for full mineral operations (stone + metal).",
-                ],
+    "dunkleosteus": {
+        "display_name": "Dunkleosteus",
+        "color": 0x2471A3,
+        "builds": [
+            {
+                "name": "Oil Baron",
+                "split": "80 pts → Weight  |  8 pts → Melee  (weight = more oil per dive)",
             },
-            "Harvest / Utility": {
-                "priority": "Weight > Melee",
-                "target_stats": {
-                    "Health":  "10,000 HP",
-                    "Stamina": "Default",
-                    "Melee":   "600%+",
-                    "Weight":  "8,000+",
-                },
-                "level_split": "70 pts → Weight  |  14 pts → Melee  |  4 pts → Health",
-                "tips": [
-                    "Dedicated farm Doed: max weight line only. No mutations needed.",
-                ],
+            {
+                "name": "Pearl Diver",
+                "split": "60 pts → Weight  |  28 pts → Melee  (melee increases silica yield)",
             },
-        },
+        ],
+        "thresholds": [
+            "OXYGEN: Irrelevant — Dunkleosteus is fully aquatic, invest zero points.",
+            "WEIGHT: Primary stat. Deep-sea runs are limited by carry capacity, not dive time.",
+            "MELEE: Increases harvest yield per bite on oil rocks and silica pearl nodes.",
+            "COMBAT DAMAGE REDUCTION: Dunkleosteus has innate damage reduction against "
+            "Mosasaurus and Megalodon — it can hold its own in combat if needed.",
+            "Rider oxygen IS limited — surface every 2–3 minutes or bring a scuba tank.",
+        ],
+        "tips": [
+            "Deep-sea drop zones yield massive oil and silica pearls — invest in Weight for volume.",
+            "Escort with Basilosaurus: Basilos protect against aggressive Mosas/Squids "
+            "and do not traumatize the rider.",
+            "Position Dunkleosteus over oil rock clusters — chained bites harvest rapidly.",
+            "Surface periodically at oxygen half-point (if not scuba-equipped) to avoid blackout.",
+            "Pair with Ankylosaurus pipeline: Dunk covers underwater resources, Anky covers surface.",
+            "Does NOT need mutations for farm role — breed high base Weight and Melee lines.",
+        ],
     },
 
     # ===================================================================
-    # SHADOWMANE  — stealth assassin / alpha disruption
+    # PARACERATHERIUM  — rolling FOB / turret platform / soaker
     # ===================================================================
-    "shadowmane": {
-        "display_name": "Shadowmane",
-        "color": 0x8E44AD,  # Purple — stealth/assassin
-        "roles": {
-            "General Meta": {
-                "priority": "Melee > Health > Stamina",
-                "target_stats": {
-                    "Health":  "20,000 – 30,000 HP",
-                    "Stamina": "2,500  (teleport/sprint stamina cost is high)",
-                    "Melee":   "1,200% – 1,800%",
-                    "Weight":  "Default",
-                },
-                "level_split": (
-                    "44 pts → Melee  |  36 pts → Health  |  8 pts → Stamina\n"
-                    "Teleport ability drains stamina heavily — invest accordingly."
-                ),
-                "tips": [
-                    "TELEPORT STRIKE: Instant-gap-close blink strike — can one-shot dismount riders.",
-                    "Stealth mode (swimming/submerging) grants invisibility — ideal for ambushes.",
-                    "Shadowmane pack bonus: each additional Shadowmane nearby increases stats.",
-                    "Requires fish to tame — passive tame only (sleep feeding).",
-                    "Gender-specific buff: males provide group buff, females provide stealth uptime.",
-                    "Counter to Shadowmane: turrets on render — they bypass walls.",
-                ],
+    "paraceratherium": {
+        "display_name": "Paraceratherium",
+        "color": 0x8E44AD,
+        "builds": [
+            {
+                "name": "Rolling FOB",
+                "split": "60 pts → Health  |  24 pts → Weight  |  4 pts → Stamina",
             },
-            "PvP Main": {
-                "priority": "Melee > Stamina > Health",
-                "target_stats": {
-                    "Health":  "22,000 HP",
-                    "Stamina": "3,000",
-                    "Melee":   "1,600%+",
-                    "Weight":  "Default",
-                },
-                "level_split": "50 pts → Melee  |  30 pts → Stamina  |  8 pts → Health",
-                "tips": [
-                    "Pack of 5+ Shadowmanes with stacked pack bonus = alpha-tier raid disruption.",
-                    "Target enemy riders first — teleport strike dismounts reliably.",
-                    "Retreat into water to re-stealth and re-engage.",
-                ],
+            {
+                "name": "Turret Soaker",
+                "split": "88 pts → Health  (maximum survivability under sustained turret fire)",
             },
-        },
-    },
-
-    # ===================================================================
-    # MANAGARMR  — aerial hyper-mobility
-    # ===================================================================
-    "managarmr": {
-        "display_name": "Managarmr",
-        "color": 0x2980B9,  # Dark Blue — mobility/aerial
-        "roles": {
-            "General Meta": {
-                "priority": "Stamina > Melee > Health",
-                "target_stats": {
-                    "Health":  "15,000 – 25,000 HP",
-                    "Stamina": "4,000+  (ice dash / jump charges rely on stamina)",
-                    "Melee":   "1,000% – 1,400%  (ice breath scales with melee)",
-                    "Weight":  "Default",
-                },
-                "level_split": (
-                    "50 pts → Stamina  |  24 pts → Melee  |  14 pts → Health\n"
-                    "Stamina is the primary stat — Mana is useless without sustained dash charges."
-                ),
-                "tips": [
-                    "ICE BREATH: Freezes targets in place — invaluable for pin-down PvP.",
-                    "Triple-jump + long-distance dash enables vertical combat no other mount matches.",
-                    "Weak in stamina-drained state — stay above 50% stamina for emergency escape.",
-                    "Extremely effective for sniping riders off enemy tames mid-fight.",
-                    "ASA nerf awareness: confirm current dash/freeze behavior in live patch notes.",
-                    "Best paired with a base-line ground mount (Giga/Carcha) — Mana is support/disrupt.",
-                    "Saddle: 50+ armor; not a frontline tank mount.",
-                ],
-            },
-            "PvP Main": {
-                "priority": "Stamina > Melee > Health",
-                "target_stats": {
-                    "Health":  "20,000 HP",
-                    "Stamina": "5,000+",
-                    "Melee":   "1,200%+",
-                    "Weight":  "Default",
-                },
-                "level_split": "60 pts → Stamina  |  20 pts → Melee  |  8 pts → Health",
-                "tips": [
-                    "Recharge stamina by landing — never hover static in combat.",
-                    "Ice breath spam into Carcha charge = devastating freeze-into-shred combo.",
-                ],
-            },
-        },
+        ],
+        "thresholds": [
+            "PLATFORM SADDLE: Structures, turrets, generators, and beds can all be placed "
+            "on Paracer's back — making it a mobile forward operating base.",
+            "WEIGHT: Secondary priority for FOB role — heavier platform holds more structure "
+            "inventory and deployed ammunition.",
+            "Paracer is slower than Stego but larger — it can sustain more turret hits before "
+            "reaching critical HP. Use Paracer for opening breaches, Stego for sustained soak.",
+            "STRUCTURE LIMIT: Platform saddle has a structure cap — plan turret layout efficiently.",
+        ],
+        "tips": [
+            "FOB build: deploy 10–20 auto-turrets on Paracer's platform before a base assault. "
+            "Walk it into range and let the turrets engage while the enemy is distracted.",
+            "Pair with Stego soaker line: Stegos absorb turret fire while Paracer advances "
+            "its own turret platform into range.",
+            "Place a bed + sleeping bag on the platform for rapid respawn during active raids.",
+            "Deploy industrial forge on Paracer for on-the-fly ammunition smelting during siege.",
+            "Keep a dedicated rider managing platform structure repairs mid-assault.",
+        ],
     },
 }
-
-
-# ---------------------------------------------------------------------------
-# VALID ROLE CHOICES  — exposed to app_commands.Choice list
-# ---------------------------------------------------------------------------
-VALID_ROLES: list[str] = [
-    "General Meta",
-    "PvP Main",
-    "Boss / Raiding",
-    "Harvest / Utility",
-    "Soaker",
-]
 
 
 # ---------------------------------------------------------------------------
@@ -786,8 +551,8 @@ VALID_ROLES: list[str] = [
 
 def resolve_tame(query: str) -> str | None:
     """
-    Normalize a user input string to a canonical tame key.
-    Returns None if no match found.
+    Normalize user input → canonical tame key via alias map.
+    Returns None if no match.
     """
     normalized = query.strip().lower()
     canonical = TAME_ALIASES.get(normalized)
@@ -796,39 +561,29 @@ def resolve_tame(query: str) -> str | None:
     return None
 
 
-def get_tame_data(key: str, role: str = "General Meta") -> dict | None:
+def get_tame_data(key: str) -> dict | None:
     """
-    Retrieve the stat block for a given canonical tame key + role.
-    Falls back to 'General Meta' if the requested role isn't defined for that tame.
-    Returns None if the tame key doesn't exist.
+    Return the full data dict for a tame by canonical key.
+    Returns None if the key doesn't exist.
     """
-    tame = TAME_DATABASE.get(key)
-    if not tame:
-        return None
-
-    roles = tame["roles"]
-    role_data = roles.get(role) or roles.get("General Meta")
-    return {
-        "display_name": tame["display_name"],
-        "color": tame["color"],
-        "role": role if role in roles else "General Meta",
-        **role_data,
-    }
+    return TAME_DATABASE.get(key)
 
 
 def list_tame_display_names() -> list[str]:
-    """Return all canonical display names (for autocomplete)."""
+    """All canonical display names (for error messages)."""
     return [v["display_name"] for v in TAME_DATABASE.values()]
 
 
 def search_tames(query: str) -> list[str]:
     """
-    Fuzzy-ish search: return display names whose key or display_name
-    contains the query substring. Used for autocomplete suggestions.
+    Substring search across alias keys and display names.
+    Returns matching display names for autocomplete suggestions.
     """
     q = query.strip().lower()
-    matches = []
+    matches: list[str] = []
+    seen: set[str] = set()
     for key, data in TAME_DATABASE.items():
-        if q in key or q in data["display_name"].lower():
+        if (q in key or q in data["display_name"].lower()) and key not in seen:
             matches.append(data["display_name"])
+            seen.add(key)
     return matches

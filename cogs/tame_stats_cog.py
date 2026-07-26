@@ -1,20 +1,21 @@
 """
 Cog: cogs/tame_stats_cog.py
-Description: /tame-stats slash command — endgame/meta stat allocation guidelines
-             for alpha-tier PvP and boss-fight tames in ARK: Survival Ascended.
+Description: /tame-stats slash command — endgame leveling guide for alpha-tier
+             PvP and boss-fight tames in ARK: Survival Ascended.
+             Focus: where to dump 88 domestic points post-hatch, key thresholds,
+             and tribal meta tips.
 Author: pwnedByJT
 """
 
 import discord
 from discord.ext import commands
 from discord import app_commands
-from typing import List, Optional
+from typing import List
 from datetime import datetime, timezone
 
 from data.tame_stats import (
     TAME_DATABASE,
     TAME_ALIASES,
-    VALID_ROLES,
     resolve_tame,
     get_tame_data,
     search_tames,
@@ -23,7 +24,7 @@ from data.tame_stats import (
 
 
 # ---------------------------------------------------------------------------
-# AUTOCOMPLETE CALLBACKS
+# AUTOCOMPLETE
 # ---------------------------------------------------------------------------
 
 async def tame_autocomplete(
@@ -32,27 +33,27 @@ async def tame_autocomplete(
 ) -> List[app_commands.Choice[str]]:
     """
     Autocomplete for the 'tame' parameter.
-    Searches alias keys + display names for partial matches.
+    Checks alias keys first (catches shorthand: giga, theri, carcha, daed...),
+    then display names. Capped at 25 per Discord limit.
     """
     if not current:
-        # Return a sampler of all available tames when field is empty
         return [
             app_commands.Choice(name=data["display_name"], value=data["display_name"])
-            for data in list(TAME_DATABASE.values())
+            for data in TAME_DATABASE.values()
         ][:25]
 
     q = current.strip().lower()
     seen: set[str] = set()
     results: list[app_commands.Choice[str]] = []
 
-    # Match against alias keys first (catches shorthand like "giga", "theri")
+    # Alias match first — catches shorthand inputs
     for alias, canonical in TAME_ALIASES.items():
         if q in alias and canonical not in seen:
             display = TAME_DATABASE[canonical]["display_name"]
             results.append(app_commands.Choice(name=display, value=display))
             seen.add(canonical)
 
-    # Also match against display names directly
+    # Display name match — catches full or partial name typing
     for canonical, data in TAME_DATABASE.items():
         if q in data["display_name"].lower() and canonical not in seen:
             results.append(app_commands.Choice(name=data["display_name"], value=data["display_name"]))
@@ -65,53 +66,58 @@ async def tame_autocomplete(
 # EMBED BUILDER
 # ---------------------------------------------------------------------------
 
-def _build_tame_embed(data: dict) -> discord.Embed:
+def _build_tame_embed(tame_data: dict) -> discord.Embed:
     """
-    Construct the /tame-stats response embed from a resolved stat block.
-    Note: This command intentionally uses structured emoji headers per user spec,
-    which is a deviation from the bot's general No-Emote policy.
+    Build the /tame-stats response embed.
+
+    3-field layout:
+      🎯  Priority Stat Allocation   — named builds with point dumps
+      ⚙️  Key Thresholds & Mechanics — engine caps, rage points, cake thresholds
+      💡  Tribe Meta Pro-Tips        — saddles, synergy, usage notes
     """
     embed = discord.Embed(
-        title=f"{data['display_name']}  —  {data['role']}",
+        title=f"ARK: SA Endgame Leveling Guide - {tame_data['display_name']}",
         description=(
-            "Alpha-tier endgame stat guidelines for ASA. "
-            "All values assume fully mutated lines (20/20 pat/mat), "
-            "max imprint, and official rates. Adjust for custom servers."
+            "Post-hatch/tame leveling strategy for alpha-tier content. "
+            "Assumes max imprint, fully mutated lines, and official rates."
         ),
-        color=discord.Color(data["color"]),
+        color=discord.Color(tame_data["color"]),
         timestamp=datetime.now(timezone.utc),
     )
-    embed.set_footer(text="Designed by pwnedByJT  |  ARKintel  |  Baseline estimates — edit data/tame_stats.py")
+    embed.set_footer(
+        text="Designed by pwnedByJT  |  ARKintel  |  Update values in data/tame_stats.py"
+    )
 
-    # --- Field 1: Priority ---
+    # --- Field 1: 🎯 Priority Stat Allocation ---
+    builds = tame_data.get("builds", [])
+    if builds:
+        build_lines = "\n\n".join(
+            f"[ {b['name']} ]\n{b['split']}"
+            for b in builds
+        )
+    else:
+        build_lines = "No build data available."
+
     embed.add_field(
-        name="[PRIORITY]  Stat Allocation Order",
-        value=f"```{data['priority']}```",
+        name="🎯  Priority Stat Allocation  (88 domestic pts)",
+        value=f"```{build_lines}```",
         inline=False,
     )
 
-    # --- Field 2: Target Stats ---
-    stats_lines = "\n".join(
-        f"{stat:<12} {value}"
-        for stat, value in data["target_stats"].items()
-    )
+    # --- Field 2: ⚙️ Key Thresholds & Mechanics ---
+    thresholds = tame_data.get("thresholds", [])
+    threshold_text = "\n".join(f"• {t}" for t in thresholds) if thresholds else "No threshold data."
     embed.add_field(
-        name="[TARGETS]  Post-Mutated Endgame Stats",
-        value=f"```{stats_lines}```",
+        name="⚙️  Key Thresholds & Mechanics",
+        value=threshold_text,
         inline=False,
     )
 
-    # --- Field 3: Domestic Level Distribution ---
+    # --- Field 3: 💡 Tribe Meta Pro-Tips ---
+    tips = tame_data.get("tips", [])
+    tips_text = "\n".join(f"• {tip}" for tip in tips) if tips else "No tips available."
     embed.add_field(
-        name="[LEVELS]  Domestic Point Distribution  (88 pts total)",
-        value=f"```{data['level_split']}```",
-        inline=False,
-    )
-
-    # --- Field 4: Pro Tips ---
-    tips_text = "\n".join(f"• {tip}" for tip in data["tips"])
-    embed.add_field(
-        name="[META]  Pro Tips & Gear Requirements",
+        name="💡  Tribe Meta Pro-Tips",
         value=tips_text,
         inline=False,
     )
@@ -124,35 +130,30 @@ def _build_tame_embed(data: dict) -> discord.Embed:
 # ---------------------------------------------------------------------------
 
 class TameStatsCog(commands.Cog):
-    """Slash commands for tame stat allocation and meta guidelines."""
+    """Slash commands for tame leveling guides and meta strategy."""
 
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
     @app_commands.command(
         name="tame-stats",
-        description="Get endgame/meta stat allocation for a key ASA tame (alpha PvP / boss-fight focused).",
+        description="Get an endgame leveling guide for a key ASA tame (PvP / boss / utility).",
     )
     @app_commands.describe(
-        tame="The creature to look up (e.g. Giganotosaurus, Theri, Giga, Rex, Carcha...)",
-        role="Intended role/context (defaults to General Meta)",
+        tame="Creature to look up — type a name or shorthand (giga, theri, carcha, daed, paracer...)",
     )
     @app_commands.autocomplete(tame=tame_autocomplete)
-    @app_commands.choices(role=[
-        app_commands.Choice(name=r, value=r) for r in VALID_ROLES
-    ])
     async def tame_stats(
         self,
         itxn: discord.Interaction,
         tame: str,
-        role: Optional[app_commands.Choice[str]] = None,
     ) -> None:
-        """Return a stat allocation embed for the requested tame and role."""
+        """Return the leveling guide embed for the requested tame."""
 
-        # Resolve input → canonical key
+        # --- Resolve input → canonical key ---
         canonical_key = resolve_tame(tame)
 
-        # Fallback: try matching by display name if alias lookup missed
+        # Fallback: substring match against display names
         if not canonical_key:
             q = tame.strip().lower()
             for key, data in TAME_DATABASE.items():
@@ -161,36 +162,30 @@ class TameStatsCog(commands.Cog):
                     break
 
         if not canonical_key:
-            # Suggest close matches
             suggestions = search_tames(tame)
-            suggestion_text = (
+            suggestion_block = (
                 "\n".join(f"  • {s}" for s in suggestions[:5])
                 if suggestions
                 else "  No close matches found."
             )
             await itxn.response.send_message(
                 f"**[ERROR]** `{tame}` was not found in the tame database.\n"
-                f"Did you mean one of these?\n{suggestion_text}\n\n"
-                f"Full list of supported tames:\n"
+                f"Did you mean:\n{suggestion_block}\n\n"
+                f"**All supported tames:**\n"
                 f"```{', '.join(list_tame_display_names())}```",
                 ephemeral=True,
             )
             return
 
-        # Resolve role
-        requested_role = role.value if role else "General Meta"
-
-        # Fetch stat block
-        stat_data = get_tame_data(canonical_key, requested_role)
-        if not stat_data:
+        tame_data = get_tame_data(canonical_key)
+        if not tame_data:
             await itxn.response.send_message(
-                "[ERROR] Failed to load stat data. This is a bug — report to pwnedByJT.",
+                "[ERROR] Failed to load tame data. Report this bug to pwnedByJT.",
                 ephemeral=True,
             )
             return
 
-        embed = _build_tame_embed(stat_data)
-        await itxn.response.send_message(embed=embed)
+        await itxn.response.send_message(embed=_build_tame_embed(tame_data))
 
     @tame_stats.error
     async def tame_stats_error(
@@ -205,7 +200,7 @@ class TameStatsCog(commands.Cog):
 
 
 # ---------------------------------------------------------------------------
-# SETUP HOOK  (called by bot.load_extension or direct add_cog)
+# SETUP HOOK
 # ---------------------------------------------------------------------------
 
 async def setup(bot: commands.Bot) -> None:
