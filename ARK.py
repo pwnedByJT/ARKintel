@@ -330,10 +330,14 @@ class Bot(commands.Bot):
         from cogs.boss_check_cog import BossCheckCog
         await self.add_cog(BossCheckCog(self))
 
+        # Help / command reference cog
+        from cogs.help_cog import HelpCog
+        await self.add_cog(HelpCog(self))
+
         await self.tree.sync()
         print(
             "System Online | ARKintel Enterprise | "
-            "Commands: /tame-stats /imprint /imprint-cancel /recipe /raid-calc /boss-check"
+            "Commands: /tame-stats /imprint /recipe /raid-calc /boss-check /ark-help"
         )
 
 if __name__ == "__main__":
