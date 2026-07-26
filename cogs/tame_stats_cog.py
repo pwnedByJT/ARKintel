@@ -1,9 +1,7 @@
 """
 Cog: cogs/tame_stats_cog.py
-Description: /tame-stats slash command — endgame leveling guide for alpha-tier
-             PvP and boss-fight tames in ARK: Survival Ascended.
-             Focus: where to dump 88 domestic points post-hatch, key thresholds,
-             and tribal meta tips.
+Description: /tame-stats slash command — hyper-concise endgame leveling guides
+             for alpha-tier PvP and boss tames in ARK: Survival Ascended.
 Author: pwnedByJT
 """
 
@@ -31,11 +29,6 @@ async def tame_autocomplete(
     itxn: discord.Interaction,
     current: str,
 ) -> List[app_commands.Choice[str]]:
-    """
-    Autocomplete for the 'tame' parameter.
-    Checks alias keys first (catches shorthand: giga, theri, carcha, daed...),
-    then display names. Capped at 25 per Discord limit.
-    """
     if not current:
         return [
             app_commands.Choice(name=data["display_name"], value=data["display_name"])
@@ -46,14 +39,12 @@ async def tame_autocomplete(
     seen: set[str] = set()
     results: list[app_commands.Choice[str]] = []
 
-    # Alias match first — catches shorthand inputs
     for alias, canonical in TAME_ALIASES.items():
         if q in alias and canonical not in seen:
             display = TAME_DATABASE[canonical]["display_name"]
             results.append(app_commands.Choice(name=display, value=display))
             seen.add(canonical)
 
-    # Display name match — catches full or partial name typing
     for canonical, data in TAME_DATABASE.items():
         if q in data["display_name"].lower() and canonical not in seen:
             results.append(app_commands.Choice(name=data["display_name"], value=data["display_name"]))
@@ -66,59 +57,65 @@ async def tame_autocomplete(
 # EMBED BUILDER
 # ---------------------------------------------------------------------------
 
+def _format_builds(builds: list[dict]) -> str:
+    """
+    Format named builds into a scannable code block.
+
+    Output:
+        [ Sky Freighter ]
+        • 80 Pts → Weight
+        • 8 Pts  → Stamina
+
+        [ Mobile Raid FOB ]
+        • 60 Pts → Weight
+        ...
+    """
+    sections = []
+    for build in builds:
+        lines = [f"[ {build['name']} ]"]
+        for pt in build["points"]:
+            lines.append(f"• {pt}")
+        sections.append("\n".join(lines))
+    return "\n\n".join(sections)
+
+
 def _build_tame_embed(tame_data: dict) -> discord.Embed:
     """
-    Build the /tame-stats response embed.
-
-    3-field layout:
-      🎯  Priority Stat Allocation   — named builds with point dumps
-      ⚙️  Key Thresholds & Mechanics — engine caps, rage points, cake thresholds
-      💡  Tribe Meta Pro-Tips        — saddles, synergy, usage notes
+    3-field hyper-concise embed:
+      🎯  Priority Stat Allocation
+      ⚙️  Key Caps & Thresholds     (max 2 bullets)
+      💡  Tribe Pro-Tips             (max 2 bullets)
     """
     embed = discord.Embed(
         title=f"ARK: SA Endgame Leveling Guide - {tame_data['display_name']}",
-        description=(
-            "Post-hatch/tame leveling strategy for alpha-tier content. "
-            "Assumes max imprint, fully mutated lines, and official rates."
-        ),
+        description=tame_data["meta"],
         color=discord.Color(tame_data["color"]),
         timestamp=datetime.now(timezone.utc),
     )
     embed.set_footer(
-        text="Designed by pwnedByJT  |  ARKintel  |  Update values in data/tame_stats.py"
+        text="Designed by pwnedByJT  |  ARKintel  |  Edit: data/tame_stats.py"
     )
 
-    # --- Field 1: 🎯 Priority Stat Allocation ---
-    builds = tame_data.get("builds", [])
-    if builds:
-        build_lines = "\n\n".join(
-            f"[ {b['name']} ]\n{b['split']}"
-            for b in builds
-        )
-    else:
-        build_lines = "No build data available."
-
+    # 🎯 Allocation
     embed.add_field(
         name="🎯  Priority Stat Allocation  (88 domestic pts)",
-        value=f"```{build_lines}```",
+        value=f"```{_format_builds(tame_data['builds'])}```",
         inline=False,
     )
 
-    # --- Field 2: ⚙️ Key Thresholds & Mechanics ---
+    # ⚙️ Thresholds — max 2 bullets
     thresholds = tame_data.get("thresholds", [])
-    threshold_text = "\n".join(f"• {t}" for t in thresholds) if thresholds else "No threshold data."
     embed.add_field(
-        name="⚙️  Key Thresholds & Mechanics",
-        value=threshold_text,
+        name="⚙️  Key Caps & Thresholds",
+        value="\n".join(thresholds) if thresholds else "• N/A",
         inline=False,
     )
 
-    # --- Field 3: 💡 Tribe Meta Pro-Tips ---
+    # 💡 Tips — max 2 bullets
     tips = tame_data.get("tips", [])
-    tips_text = "\n".join(f"• {tip}" for tip in tips) if tips else "No tips available."
     embed.add_field(
-        name="💡  Tribe Meta Pro-Tips",
-        value=tips_text,
+        name="💡  Tribe Pro-Tips",
+        value="\n".join(tips) if tips else "• N/A",
         inline=False,
     )
 
@@ -130,30 +127,21 @@ def _build_tame_embed(tame_data: dict) -> discord.Embed:
 # ---------------------------------------------------------------------------
 
 class TameStatsCog(commands.Cog):
-    """Slash commands for tame leveling guides and meta strategy."""
 
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
     @app_commands.command(
         name="tame-stats",
-        description="Get an endgame leveling guide for a key ASA tame (PvP / boss / utility).",
+        description="Endgame leveling guide for a key ASA tame — where to dump your 88 pts.",
     )
     @app_commands.describe(
-        tame="Creature to look up — type a name or shorthand (giga, theri, carcha, daed, paracer...)",
+        tame="Creature name or shorthand (giga, theri, carcha, daed, paracer, dunk...)",
     )
     @app_commands.autocomplete(tame=tame_autocomplete)
-    async def tame_stats(
-        self,
-        itxn: discord.Interaction,
-        tame: str,
-    ) -> None:
-        """Return the leveling guide embed for the requested tame."""
-
-        # --- Resolve input → canonical key ---
+    async def tame_stats(self, itxn: discord.Interaction, tame: str) -> None:
         canonical_key = resolve_tame(tame)
 
-        # Fallback: substring match against display names
         if not canonical_key:
             q = tame.strip().lower()
             for key, data in TAME_DATABASE.items():
@@ -165,14 +153,11 @@ class TameStatsCog(commands.Cog):
             suggestions = search_tames(tame)
             suggestion_block = (
                 "\n".join(f"  • {s}" for s in suggestions[:5])
-                if suggestions
-                else "  No close matches found."
+                if suggestions else "  No close matches found."
             )
             await itxn.response.send_message(
-                f"**[ERROR]** `{tame}` was not found in the tame database.\n"
-                f"Did you mean:\n{suggestion_block}\n\n"
-                f"**All supported tames:**\n"
-                f"```{', '.join(list_tame_display_names())}```",
+                f"**[ERROR]** `{tame}` not found.\nDid you mean:\n{suggestion_block}\n\n"
+                f"**Supported tames:**\n```{', '.join(list_tame_display_names())}```",
                 ephemeral=True,
             )
             return
@@ -180,7 +165,7 @@ class TameStatsCog(commands.Cog):
         tame_data = get_tame_data(canonical_key)
         if not tame_data:
             await itxn.response.send_message(
-                "[ERROR] Failed to load tame data. Report this bug to pwnedByJT.",
+                "[ERROR] Failed to load tame data. Report to pwnedByJT.",
                 ephemeral=True,
             )
             return
@@ -188,13 +173,9 @@ class TameStatsCog(commands.Cog):
         await itxn.response.send_message(embed=_build_tame_embed(tame_data))
 
     @tame_stats.error
-    async def tame_stats_error(
-        self,
-        itxn: discord.Interaction,
-        error: app_commands.AppCommandError,
-    ) -> None:
+    async def tame_stats_error(self, itxn: discord.Interaction, error: app_commands.AppCommandError) -> None:
         await itxn.response.send_message(
-            f"[ERROR] Command failed: `{error}`\nContact pwnedByJT if this persists.",
+            f"[ERROR] `{error}` — contact pwnedByJT.",
             ephemeral=True,
         )
 
