@@ -314,8 +314,27 @@ class Bot(commands.Bot):
         from cogs.tame_stats_cog import TameStatsCog
         await self.add_cog(TameStatsCog(self))
 
+        # Imprint / hatch timer cog
+        from cogs.imprint_cog import ImprintCog
+        await self.add_cog(ImprintCog(self))
+
+        # Consumable recipe reference cog
+        from cogs.recipe_cog import RecipeCog
+        await self.add_cog(RecipeCog(self))
+
+        # Raid calculator cog
+        from cogs.raid_calc_cog import RaidCalcCog
+        await self.add_cog(RaidCalcCog(self))
+
+        # Boss entry checklist cog
+        from cogs.boss_check_cog import BossCheckCog
+        await self.add_cog(BossCheckCog(self))
+
         await self.tree.sync()
-        print("System Online | No-Emote Mode | Enterprise Edition | /tame-stats loaded")
+        print(
+            "System Online | ARKintel Enterprise | "
+            "Commands: /tame-stats /imprint /imprint-cancel /recipe /raid-calc /boss-check"
+        )
 
 if __name__ == "__main__":
     Bot().run(os.getenv("DISCORD_TOKEN"))
