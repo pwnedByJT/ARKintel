@@ -15,11 +15,16 @@ from discord import app_commands
 import aiohttp
 import aiosqlite
 import os
+import sys
 import json
 import random
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict
 from dotenv import load_dotenv
+
+# Ensure repo root is on sys.path so 'data' and 'cogs' packages resolve
+# when running as `python ARK.py` from the repo root directory.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 load_dotenv()
 
@@ -300,11 +305,17 @@ class ARKCog(commands.Cog):
 class Bot(commands.Bot):
     def __init__(self): super().__init__(command_prefix="!", intents=discord.Intents.all())
     async def setup_hook(self):
+        # Core monitoring cog
         cog = ARKCog(self)
         await cog.db.initialize()
         await self.add_cog(cog)
+
+        # Tame stats / meta guide cog
+        from cogs.tame_stats_cog import TameStatsCog
+        await self.add_cog(TameStatsCog(self))
+
         await self.tree.sync()
-        print("System Online | No-Emote Mode | Enterprise Edition")
+        print("System Online | No-Emote Mode | Enterprise Edition | /tame-stats loaded")
 
 if __name__ == "__main__":
     Bot().run(os.getenv("DISCORD_TOKEN"))
