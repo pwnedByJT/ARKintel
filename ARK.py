@@ -18,9 +18,13 @@ import os
 import sys
 import json
 import random
+import io
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict
 from dotenv import load_dotenv
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+import matplotlib.dates as mdates
 
 # Ensure repo root is on sys.path so 'data' and 'cogs' packages resolve
 # when running as `python ARK.py` from the repo root directory.
@@ -74,6 +78,20 @@ class DatabaseEngine:
                     "current": counts[-1], "avg": round(sum(counts)/len(counts), 1),
                     "peak": max(counts), "low": min(counts), "samples": len(counts)
                 }
+
+    async def get_timeseries(self, name: str, hours: int = 24):
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                "SELECT player_count, timestamp FROM server_stats "
+                "WHERE server_name = ? AND timestamp > datetime('now', ?) "
+                "ORDER BY timestamp",
+                (name, f'-{hours} hours')
+            ) as cursor:
+                rows = await cursor.fetchall()
+                if not rows:
+                    return None
+                return [(r['timestamp'], r['player_count']) for r in rows]
 
 # --- UI UTILITIES ---
 class EmbedFactory:
@@ -388,6 +406,79 @@ class ARKCog(commands.Cog):
         embed.add_field(name="Peak", value=f"`{stats['peak']}`", inline=True)
         embed.add_field(name="Samples", value=f"`{stats['samples']}`", inline=True)
         await itxn.followup.send(embed=embed)
+
+    @app_commands.command(name="popgraph", description="Visual population chart for a monitored server")
+    @app_commands.describe(server_number="Server to graph", hours="How many hours back to show (default 24)")
+    @app_commands.autocomplete(server_number=server_autocomplete)
+    async def popgraph(self, itxn: discord.Interaction, server_number: str, hours: int = 24):
+        await itxn.response.defer()
+
+        rows = await self.db.get_timeseries(server_number, hours)
+        if not rows or len(rows) < 2:
+            return await itxn.followup.send(
+                "Not enough data to graph. Run `/monitor` on the server first to start collecting history."
+            )
+
+        # Parse timestamps — SQLite CURRENT_TIMESTAMP is space-separated, not ISO 'T'
+        timestamps = [datetime.strptime(r[0], '%Y-%m-%d %H:%M:%S') for r in rows]
+        counts = [r[1] for r in rows]
+        avg = sum(counts) / len(counts)
+        peak = max(counts)
+        low = min(counts)
+
+        # Pick line color by average population (mirrors EmbedFactory logic)
+        line_color = '#57f287' if avg < 40 else ('#fee75c' if avg < 65 else '#ed4245')
+
+        # Build chart — OO API only, no pyplot (headless-safe, no figure leak)
+        fig = Figure(figsize=(10, 4), dpi=110)
+        FigureCanvasAgg(fig)
+        ax = fig.add_subplot(111)
+
+        # Discord dark theme
+        fig.patch.set_facecolor('#2b2d31')
+        ax.set_facecolor('#1e1f22')
+
+        # Main line + fill
+        ax.plot(timestamps, counts, color=line_color, linewidth=2.2, zorder=3)
+        ax.fill_between(timestamps, counts, alpha=0.12, color=line_color)
+
+        # Reference lines
+        ax.axhline(avg,  color='#b5bac1', linewidth=0.9, linestyle='--', alpha=0.6, label=f'Avg {avg:.1f}')
+        ax.axhline(peak, color='#ed4245', linewidth=0.9, linestyle=':',  alpha=0.7, label=f'Peak {peak}')
+
+        # Axes styling
+        ax.set_ylim(0, 75)
+        ax.set_ylabel('Players', color='#b5bac1', fontsize=9)
+        ax.set_xlabel('Time (UTC)', color='#b5bac1', fontsize=9)
+        ax.tick_params(colors='#b5bac1', which='both', labelsize=8)
+        for spine in ax.spines.values():
+            spine.set_edgecolor('#3f4148')
+        ax.set_title(f'{server_number}  —  last {hours}h', color='#ffffff', fontsize=11, pad=10)
+        ax.legend(facecolor='#2b2d31', edgecolor='#3f4148', labelcolor='#b5bac1', fontsize=8)
+
+        # X-axis: show HH:MM, auto-rotate labels
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        fig.autofmt_xdate(rotation=35, ha='right')
+        fig.tight_layout()
+
+        # Render to buffer
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png', facecolor=fig.get_facecolor())
+        buf.seek(0)
+
+        # Stats embed with chart as image
+        rand_color = discord.Color(random.randint(0, 0xFFFFFF))
+        embed = discord.Embed(title=f"Population Chart: {server_number}", color=rand_color)
+        embed.set_footer(text="Designed by pwnedByJT")
+        embed.add_field(name="Current", value=f"`{counts[-1]}`", inline=True)
+        embed.add_field(name="Average", value=f"`{avg:.1f}`",    inline=True)
+        embed.add_field(name="Peak",    value=f"`{peak}`",        inline=True)
+        embed.add_field(name="Low",     value=f"`{low}`",         inline=True)
+        embed.add_field(name="Samples", value=f"`{len(counts)}`", inline=True)
+        embed.add_field(name="Window",  value=f"`{hours}h`",      inline=True)
+        embed.set_image(url="attachment://pop.png")
+
+        await itxn.followup.send(embed=embed, file=discord.File(buf, filename="pop.png"))
 
 class Bot(commands.Bot):
     def __init__(self): super().__init__(command_prefix="!", intents=discord.Intents.all())

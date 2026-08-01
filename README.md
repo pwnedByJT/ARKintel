@@ -23,7 +23,7 @@ Stop alt-tabbing. Stop Googling recipes. Stop guessing how many C4 you need. **J
 - Live server dashboards that refresh every 60s + voice channel counters (e.g. `ASA #2154: 45/70`)
 - Pop alerts — watch any server and get pinged the second it drops below a count you set
 - EVO rate alerts when Official rates change
-- Historical population graphs (24h+)
+- Historical population data (24h+) — text stats via `/serverstats`, visual chart via `/popgraph`
 - Tame leveling guides — exactly where to put your 88 domestic points per creature
 - Hatch/cuddle timers with a 5-min heads-up ping
 - Raid calculator — exact C4/RPG/grenade counts + raw material costs per structure
@@ -65,6 +65,7 @@ Stop alt-tabbing. Stop Googling recipes. Stop guessing how many C4 you need. **J
 | `/serverpop server_number:<name>` | Quick one-time pop check, no persistent tracking |
 | `/stopmonitor server_number:<name>` | Kill the dashboard and voice counter for a server |
 | `/serverstats server_number:<name> [hours:<int>]` | Pop history and trends, default last 24h |
+| `/popgraph server_number:<name> [hours:<int>]` | Visual population chart sent as an image. Needs at least 2 data points — run `/monitor` first |
 | `/popwatch server_number:<name> threshold:<int>` | Pings you the moment a server's population drops below your number. Resets when pop climbs back up. |
 | `/popwatch_remove server_number:<name>` | Remove a pop alert you set |
 
