@@ -77,7 +77,14 @@ HELP_SECTIONS = [
             "  Stop tracking a server and remove its voice counter.\n"
             "\n"
             "/serverstats server_number:<name> [hours:<int>]\n"
-            "  Historical population analytics. Default: last 24 hours."
+            "  Historical population analytics. Default: last 24 hours.\n"
+            "\n"
+            "/popwatch server_number:<name> threshold:<int>\n"
+            "  Get pinged when a server's population drops below your threshold.\n"
+            "  Checks every 60s. Re-arms automatically when pop recovers.\n"
+            "\n"
+            "/popwatch_remove server_number:<name>\n"
+            "  Cancel a population alert you previously set."
             "```"
         ),
     },
@@ -85,8 +92,9 @@ HELP_SECTIONS = [
         "name": "⭐  Favorites & Utilities",
         "value": (
             "```"
-            "/fav_add server_number:<name>   Add a server to your favorites list.\n"
-            "/fav_list                       View all saved favorites with live status.\n"
+            "/fav_add server_number:<name>    Add a server to your favorites list.\n"
+            "/fav_list                        View all saved favorites with live status.\n"
+            "/fav_remove server_number:<name> Remove a server from your favorites.\n"
             "\n"
             "/console\n"
             "  Copy-paste console optimization command string for ASA.\n"

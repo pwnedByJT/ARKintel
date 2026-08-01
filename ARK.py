@@ -40,6 +40,7 @@ class Config:
     OFFICIAL_API = "https://cdn2.arkdedicated.com/servers/asa/officialserverlist.json"
     EVO_API = "https://cdn2.arkdedicated.com/asa/dynamicconfig.ini"
     ALERT_THRESHOLD = 8
+    POP_ALERTS_FILE = os.path.join(BASE_DIR, "pop_alerts.json")
 
 # --- DATABASE ENGINE ---
 class DatabaseEngine:
@@ -115,12 +116,14 @@ class ARKCog(commands.Cog):
         self.cache = []
         self.monitors = self._load_json(Config.MONITORS_FILE)
         self.favorites = self._load_json(Config.FAVORITES_FILE)
+        self.pop_alerts = self._load_json(Config.POP_ALERTS_FILE)
         self.current_rates = "1.0"
         self.last_rates = None
-        
+
         self.sync_cache.start()
         self.update_monitors.start()
         self.check_evo.start()
+        self.check_pop_alerts.start()
 
     def _load_json(self, path):
         if not os.path.exists(path): return {}
@@ -179,6 +182,39 @@ class ARKCog(commands.Cog):
                         if chan: await chan.send(f"**EVO ALERT**: Rates changed to **{rate}x**!")
                     self.last_rates = rate
             except: pass
+
+    @tasks.loop(seconds=60)
+    async def check_pop_alerts(self):
+        if not self.pop_alerts or not self.cache:
+            return
+
+        save_needed = False
+        for uid, alerts in self.pop_alerts.items():
+            for alert in alerts:
+                node = next((s for s in self.cache if alert["server"] in s.get("Name", "")), None)
+                if not node:
+                    continue
+                pop = node.get('NumPlayers') or 0
+                below = pop < alert["threshold"]
+
+                if below and not alert.get("triggered"):
+                    alert["triggered"] = True
+                    save_needed = True
+                    chan = self.bot.get_channel(alert["channel_id"])
+                    if chan:
+                        try:
+                            await chan.send(
+                                f"<@{uid}> **[POP ALERT]** **{alert['server']}** has dropped below "
+                                f"**{alert['threshold']}** players -- currently **{pop}** online."
+                            )
+                        except:
+                            pass
+                elif not below and alert.get("triggered"):
+                    alert["triggered"] = False
+                    save_needed = True
+
+        if save_needed:
+            self._save_json(Config.POP_ALERTS_FILE, self.pop_alerts)
 
     # --- COMMANDS ---
 
@@ -257,6 +293,47 @@ class ARKCog(commands.Cog):
         else:
             await itxn.response.send_message("Server is not being monitored.", ephemeral=True)
 
+    @app_commands.command(name="popwatch", description="Alert when a server drops below a population threshold")
+    @app_commands.describe(server_number="Server to watch", threshold="Alert when population drops below this number")
+    @app_commands.autocomplete(server_number=server_autocomplete)
+    async def popwatch(self, itxn: discord.Interaction, server_number: str, threshold: int):
+        uid = str(itxn.user.id)
+        if uid not in self.pop_alerts:
+            self.pop_alerts[uid] = []
+
+        existing = next((a for a in self.pop_alerts[uid] if a["server"] == server_number), None)
+        if existing:
+            existing["threshold"] = threshold
+            existing["triggered"] = False
+            msg = f"Updated alert for **{server_number}** — will ping when below **{threshold}** players."
+        else:
+            self.pop_alerts[uid].append({
+                "server": server_number,
+                "threshold": threshold,
+                "channel_id": itxn.channel_id,
+                "triggered": False
+            })
+            msg = f"Alert set for **{server_number}** — you will be pinged when population drops below **{threshold}** players."
+
+        self._save_json(Config.POP_ALERTS_FILE, self.pop_alerts)
+        await itxn.response.send_message(msg, ephemeral=True)
+
+    @app_commands.command(name="popwatch_remove", description="Remove a population alert")
+    @app_commands.describe(server_number="Server to stop watching")
+    @app_commands.autocomplete(server_number=server_autocomplete)
+    async def popwatch_remove(self, itxn: discord.Interaction, server_number: str):
+        uid = str(itxn.user.id)
+        if uid not in self.pop_alerts or not self.pop_alerts[uid]:
+            return await itxn.response.send_message("You have no active population alerts.", ephemeral=True)
+
+        before = len(self.pop_alerts[uid])
+        self.pop_alerts[uid] = [a for a in self.pop_alerts[uid] if a["server"] != server_number]
+        if len(self.pop_alerts[uid]) < before:
+            self._save_json(Config.POP_ALERTS_FILE, self.pop_alerts)
+            await itxn.response.send_message(f"Removed pop alert for **{server_number}**.", ephemeral=True)
+        else:
+            await itxn.response.send_message(f"No alert found for **{server_number}**.", ephemeral=True)
+
     @app_commands.command(name="fav_add", description="Add server to favorites")
     @app_commands.autocomplete(server_number=server_autocomplete)
     async def fav_add(self, itxn: discord.Interaction, server_number: str):
@@ -284,6 +361,16 @@ class ARKCog(commands.Cog):
             status = f"[ONLINE] {node.get('NumPlayers')}/70" if node else "[OFFLINE]"
             embed.add_field(name=srv, value=status, inline=False)
         await itxn.response.send_message(embed=embed)
+
+    @app_commands.command(name="fav_remove", description="Remove a server from favorites")
+    @app_commands.autocomplete(server_number=server_autocomplete)
+    async def fav_remove(self, itxn: discord.Interaction, server_number: str):
+        uid = str(itxn.user.id)
+        if uid not in self.favorites or server_number not in self.favorites[uid]:
+            return await itxn.response.send_message("Server not in your favorites.", ephemeral=True)
+        self.favorites[uid].remove(server_number)
+        self._save_json(Config.FAVORITES_FILE, self.favorites)
+        await itxn.response.send_message(f"Removed **{server_number}** from favorites.")
 
     @app_commands.command(name="serverstats", description="View historical analytics")
     @app_commands.autocomplete(server_number=server_autocomplete)
