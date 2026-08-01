@@ -10,106 +10,80 @@
 
 ---
 
-## 📖 What is ARKintel?
+## What is ARKintel?
 
-**ARKintel** is a full-featured Discord bot built for serious ARK: Survival Ascended players. Whether you're a solo survivor or a mega-tribe running Official, ARKintel turns your Discord server into a real-time command center.
+Built for ARK: Survival Ascended players who don't want to alt-tab mid-raid. Solo survivor, small tribe, mega-tribe — doesn't matter. Everything you need is a slash command away.
 
 Stop alt-tabbing. Stop Googling recipes. Stop guessing how many C4 you need. **Just slash it.**
 
 ---
 
-## ✨ Full Feature Set
+## What it does
 
-### 📡 Live Server Monitoring
-- **Live Dashboards** — Auto-updating embed messages that refresh every 60 seconds
-- **Voice Channel Counters** — Locked voice channels (e.g. `🔊 ASA #2154: 45/70`) that update in real-time
-- **Historical Population Analytics** — See population trends over the last 24h or longer
-- **Auto EVO Alerts** — Bot pings a role the moment Official rates change (XP, Harvest, Taming, etc.)
-- **One-Time Snapshots** — Quick population check without persistent monitoring
-
-### 🦖 Tame Intelligence
-- **Endgame Leveling Guides** — Exactly where to dump your 88 domestic points per tame
-- **Multiple Build Variants** — Sky Freighter, Mobile Raid FOB, and more named builds per creature
-- **Key Caps & Thresholds** — Weight caps, damage thresholds, and what actually matters
-- **Tribe Pro-Tips** — Meta-optimized PvP and PvE tips for each creature
-
-### ⏰ Imprint Timers
-- **Hatch/Cuddle Alerts** — Set a timer in `HH:MM` and get pinged when the window opens
-- **5-Minute Warning** — Pre-alert so you have time to get to the baby
-- **Role Pings** — Optionally ping your tribe role instead of just yourself
-- **One-Per-User** — Starting a new timer auto-cancels your previous one
-
-### 💣 Raid Calculator
-- **Explosive Requirements** — Exact C4, RPG, and Grenade counts to destroy any structure
-- **Raw Material Costs** — Calculates everything you need to craft those explosives
-- **Bulk Calculations** — Calculate for up to 500 structures at once
-- **Wide Structure Support** — Metal Wall, Tek Wall, Vault, Heavy Turret, Tek Generator, Behemoth Gate, and more
-
-### 🏺 Boss Preparation
-- **Entry Checklists** — Artifacts, apex tributes, army composition, saddle armor floors, and HP thresholds
-- **All 3 Island Bosses** — Dragon, Broodmother, Megapithecus
-- **All 3 Tiers** — Gamma, Beta, and Alpha difficulties with tier-appropriate requirements
-- **Wipe Risk Warnings** — Common mistakes that get tribes wiped, flagged before you go in
-
-### 🧪 Consumables & Crafting
-- **Endgame Recipe Lookup** — Ingredients, effects, spoil notes, and crafting station for every meta consumable
-- **Supported Items:** Veggie Cake, Mindwipe Tonic, Shadow Steak Saute, Medical Brew, Focal Chili, Battle Tartare
-
-### ⚙️ Utilities
-- **Console Optimization String** — One-click copy-paste command to max your competitive visibility (kills shadows, foliage, fog, and bloom)
-- **Personal Favorites** — Save and track your favorite servers
-- **Smart Autocomplete** — Type "21" and pick from matching servers. Type "giga" and get the Giganotosaurus. No ID memorization.
+- Live server dashboards that refresh every 60s + voice channel counters (e.g. `ASA #2154: 45/70`)
+- Pop alerts — watch any server and get pinged the second it drops below a count you set
+- EVO rate alerts when Official rates change
+- Historical population graphs (24h+)
+- Tame leveling guides — exactly where to put your 88 domestic points per creature
+- Hatch/cuddle timers with a 5-min heads-up ping
+- Raid calculator — exact C4/RPG/grenade counts + raw material costs per structure
+- Boss entry checklists — artifacts, tributes, army comp, saddle floors, HP floors, wipe risks
+- Endgame recipe lookup (Veggie Cake, Mindwipe, Shadow Steak, Battle Tartare, etc.)
+- Console optimization string — one copy-paste to kill shadows, fog, bloom, and foliage
+- Personal server favorites with live status
 
 ---
 
-## 🧠 Commands Reference
+## Commands
 
-### 🦖 Tame Intelligence
+### Tame Intel
 | Command | Description |
 |---|---|
-| `/tame-stats tame:<name>` | Endgame leveling guide — where to allocate 88 domestic pts. Supports aliases: giga, theri, carcha, daed, paracer, dunk... |
-| `/imprint creature:<name> time_remaining:<HH:MM> [ping_role:<role>]` | Hatch/cuddle timer with 5-min warning + window-open ping |
-| `/imprint-cancel` | Cancel your active imprint timer |
+| `/tame-stats tame:<name>` | Where to put your 88 domestic points. Aliases work: giga, theri, carcha, daed, paracer, dunk... |
+| `/imprint creature:<name> time_remaining:<HH:MM> [ping_role:<role>]` | Cuddle timer. 5-min warning + ping when the window opens. One active per user. |
+| `/imprint-cancel` | Cancel your running timer |
 
-### 🧪 Consumables & Crafting
+### Consumables
 | Command | Description |
 |---|---|
-| `/recipe item:<name>` | Ingredients, effects, and spoil notes for endgame consumables |
+| `/recipe item:<name>` | Ingredients, effects, and spoil times for endgame consumables |
 
-### 💣 Raid Operations
+### Raid Calc
 | Command | Description |
 |---|---|
-| `/raid-calc structure:<name> [quantity:<int>]` | Exact explosive counts + raw material costs. Default qty: 1, max: 500 |
+| `/raid-calc structure:<name> [quantity:<int>]` | C4/RPG/grenade counts + raw material costs. Default qty: 1, max: 500 |
 
-### 🏺 Boss Preparation
+### Boss Prep
 | Command | Description |
 |---|---|
-| `/boss-check boss:<name> tier:<Gamma\|Beta\|Alpha>` | Full entry checklist — artifacts, tributes, army, thresholds, wipe risks |
+| `/boss-check boss:<name> tier:<Gamma\|Beta\|Alpha>` | Artifacts, tributes, army comp, saddle/HP floors, and wipe risks before you portal in |
 
-### 📡 Server Monitoring
+### Server Monitoring
 | Command | Description |
 |---|---|
-| `/monitor server_number:<name>` | Start a live dashboard + voice counter (auto-updates every 60s) |
-| `/serverpop server_number:<name>` | One-time server population snapshot |
-| `/stopmonitor server_number:<name>` | Stop tracking a server and remove its voice counter |
-| `/serverstats server_number:<name> [hours:<int>]` | Historical population analytics (default: last 24 hours) |
+| `/monitor server_number:<name>` | Live dashboard + voice counter, refreshes every 60s |
+| `/serverpop server_number:<name>` | Quick one-time pop check, no persistent tracking |
+| `/stopmonitor server_number:<name>` | Kill the dashboard and voice counter for a server |
+| `/serverstats server_number:<name> [hours:<int>]` | Pop history and trends, default last 24h |
+| `/popwatch server_number:<name> threshold:<int>` | Pings you the moment a server's population drops below your number. Resets when pop climbs back up. |
+| `/popwatch_remove server_number:<name>` | Remove a pop alert you set |
 
-### ⭐ Favorites & Utilities
+### Favorites & Utilities
 | Command | Description |
 |---|---|
-| `/fav_add server_number:<name>` | Save a server to your personal favorites list |
-| `/fav_list` | View all saved favorites with live status |
-| `/fav_remove server_number:<name>` | Remove a server from your favorites |
-| `/console` | Copy-paste console optimization command string for ASA |
+| `/fav_add server_number:<name>` | Add a server to your personal list |
+| `/fav_list` | See all your saved servers with live status |
+| `/fav_remove server_number:<name>` | Drop a server from your list |
+| `/console` | The full ASA optimization command string — one copy-paste to kill shadows, foliage, fog, bloom |
 
-### ℹ️ Help
+### Help
 | Command | Description |
 |---|---|
-| `/ark-help` | Full ARKintel command reference — all commands, parameters, and usage |
+| `/ark-help` | Full command reference inside Discord |
 
 ---
 
-## 🛠️ Setup & Installation
+## Setup
 
 ### 1. Clone the repository
 ```bash
@@ -148,9 +122,9 @@ python ARK.py
 
 ---
 
-## 🔑 Permissions Required
+## Permissions Required
 
-The bot needs these permissions in your Discord server for full functionality:
+The bot needs these permissions:
 
 | Permission | Why |
 |---|---|
@@ -160,13 +134,11 @@ The bot needs these permissions in your Discord server for full functionality:
 | **Embed Links** | Rich embed support |
 | **Use Slash Commands** | Required for all `/` commands |
 
-> **Admin note:** `/monitor` and `/stopmonitor` are restricted to Admins/Mods to prevent spam.
-
 ---
 
-## 📡 Data Sources
+## Data Sources
 
-All data is pulled live from **Studio Wildcard's official infrastructure**:
+Pulled live from Studio Wildcard's official CDN:
 
 | Data | Source |
 |---|---|
@@ -175,9 +147,9 @@ All data is pulled live from **Studio Wildcard's official infrastructure**:
 
 ---
 
-## 👑 Author
+## Author
 
-**Developed by:** Justin Aaron Turner *(pwnedByJT)*
+**Justin Aaron Turner** *(pwnedByJT)*
 
 | Platform | Link |
 |---|---|
@@ -188,6 +160,6 @@ All data is pulled live from **Studio Wildcard's official infrastructure**:
 
 ---
 
-## 📜 License
+## License
 
-This project is licensed under the **MIT License** — use it, fork it, build on it.
+MIT — use it, fork it, build on it.
