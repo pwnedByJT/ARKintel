@@ -2,11 +2,12 @@
 
 **The alpha-tier Discord intel bot for ARK: Survival Ascended — live server monitoring, raid calculators, boss checklists, tame guides, and more. All in one slash command.**
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python)
+![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
 ![Discord.py](https://img.shields.io/badge/discord.py-2.3.2-blue?logo=discord)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-active-success)
 ![Game](https://img.shields.io/badge/game-ARK%3A%20Survival%20Ascended-orange)
+![Deployed on](https://img.shields.io/badge/deployed%20on-K3s%20%E2%80%A2%20Raspberry%20Pi-informational?logo=kubernetes)
 
 ---
 
@@ -31,6 +32,7 @@ Stop alt-tabbing. Stop Googling recipes. Stop guessing how many C4 you need. **J
 - Endgame recipe lookup (Veggie Cake, Mindwipe, Shadow Steak, Battle Tartare, etc.)
 - Console optimization string — one copy-paste to kill shadows, fog, bloom, and foliage
 - Personal server favorites with live status
+- Live K3s cluster health — Pod status, restarts, uptime, node, resource usage
 
 ---
 
@@ -77,6 +79,11 @@ Stop alt-tabbing. Stop Googling recipes. Stop guessing how many C4 you need. **J
 | `/fav_remove server_number:<name>` | Drop a server from your list |
 | `/console` | The full ASA optimization command string — one copy-paste to kill shadows, foliage, fog, bloom |
 
+### Infrastructure
+| Command | Description |
+|---|---|
+| `/cluster-status` | Live K3s Pod health: name, namespace, status, restarts, uptime, cluster IP, node, memory/CPU limits. Requires RBAC setup (see below). |
+
 ### Help
 | Command | Description |
 |---|---|
@@ -84,9 +91,73 @@ Stop alt-tabbing. Stop Googling recipes. Stop guessing how many C4 you need. **J
 
 ---
 
-## Setup
+## Architecture
 
-### 1. Clone the repository
+ARKintel runs as a Kubernetes `Deployment` on a single-node **K3s** cluster hosted on a **Raspberry Pi (Debian 12 Bookworm)**. The container is built from `python:3.11-slim-bookworm`.
+
+```
+Raspberry Pi  →  K3s (single-node)  →  arkintel Deployment (1 replica)
+                                            ↓
+                                    python:3.11-slim-bookworm
+                                    Env via K8s Secret (arkintel-env)
+                                    Persistent data: server_stats.db (hostPath)
+```
+
+---
+
+## Deployment (K3s)
+
+### 1. Build the image
+
+```bash
+docker build -t arkintel:latest .
+```
+
+### 2. Import into K3s (no registry required)
+
+```bash
+docker save arkintel:latest | sudo k3s ctr images import -
+```
+
+### 3. Create the secret from your `.env`
+
+```bash
+kubectl create secret generic arkintel-env --from-env-file=.env
+```
+
+### 4. Apply RBAC (required for `/cluster-status`)
+
+```bash
+kubectl apply -f k8s/rbac.yaml
+```
+
+### 5. Deploy
+
+```bash
+kubectl apply -f deployment.yaml
+```
+
+> Your `deployment.yaml` must include `serviceAccountName: arkintel` for `/cluster-status` to have API access.
+
+---
+
+## K3s Management Cheat Sheet
+
+| Task | Command |
+|---|---|
+| Check Pod status | `kubectl get pods -o wide` |
+| Stream logs | `kubectl logs -f deployment/arkintel` |
+| Restart deployment | `kubectl rollout restart deployment/arkintel` |
+| Check resource usage | `kubectl top pod -l app=arkintel` |
+| Re-import updated image | `docker save arkintel:latest \| sudo k3s ctr images import -` |
+| Apply manifest changes | `kubectl apply -f deployment.yaml` |
+| Delete and recreate | `kubectl delete deployment arkintel && kubectl apply -f deployment.yaml` |
+
+---
+
+## Setup (local / non-K3s)
+
+### 1. Clone
 ```bash
 git clone https://github.com/pwnedByJT/ARKintel.git
 cd ARKintel

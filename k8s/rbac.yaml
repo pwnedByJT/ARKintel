@@ -1,0 +1,33 @@
+# ARKintel RBAC — required for /cluster-status to query the K8s API.
+# Apply with: kubectl apply -f k8s/rbac.yaml
+# Then add serviceAccountName: arkintel to deployment.yaml and redeploy.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: arkintel
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: arkintel-pod-reader
+  namespace: default
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: arkintel-pod-reader-binding
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: arkintel
+    namespace: default
+roleRef:
+  kind: Role
+  name: arkintel-pod-reader
+  apiGroup: rbac.authorization.k8s.io
