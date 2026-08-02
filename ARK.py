@@ -93,6 +93,58 @@ class DatabaseEngine:
                     return None
                 return [(r['timestamp'], r['player_count']) for r in rows]
 
+    async def get_scout_targets(self, min_avg: float = 3.0, min_samples: int = 24, days: int = 7) -> list:
+        """
+        Return servers whose weekly average population exceeds min_avg.
+        Only servers that have been actively monitored via /monitor will appear —
+        record_stats is only called from update_monitors.
+        Results capped at 10, ordered by weekly avg descending.
+        """
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                """
+                SELECT server_name,
+                       ROUND(AVG(player_count), 1) AS weekly_avg,
+                       COUNT(*)                    AS total_samples
+                FROM   server_stats
+                WHERE  timestamp > datetime('now', ?)
+                GROUP  BY server_name
+                HAVING weekly_avg > ? AND total_samples >= ?
+                ORDER  BY weekly_avg DESC
+                LIMIT  10
+                """,
+                (f'-{days} days', min_avg, min_samples)
+            ) as cursor:
+                rows = await cursor.fetchall()
+                return [dict(r) for r in rows]
+
+    async def get_quiet_window(self, name: str, min_hour_samples: int = 3, days: int = 7) -> dict | None:
+        """
+        Find the UTC hour-of-day with the lowest average population for a server.
+        Hours with fewer than min_hour_samples data points are excluded — a single
+        stray 0-pop sample would otherwise win as a false raid window.
+        Returns dict(hour_utc, avg_pop, samples) or None.
+        """
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                """
+                SELECT CAST(strftime('%H', timestamp) AS INTEGER) AS hour_utc,
+                       ROUND(AVG(player_count), 1)                AS avg_pop,
+                       COUNT(*)                                   AS samples
+                FROM   server_stats
+                WHERE  server_name = ? AND timestamp > datetime('now', ?)
+                GROUP  BY hour_utc
+                HAVING samples >= ?
+                ORDER  BY avg_pop ASC, samples DESC
+                LIMIT  1
+                """,
+                (name, f'-{days} days', min_hour_samples)
+            ) as cursor:
+                row = await cursor.fetchone()
+                return dict(row) if row else None
+
 # --- UI UTILITIES ---
 class EmbedFactory:
     @staticmethod
@@ -515,6 +567,10 @@ class Bot(commands.Bot):
         # K3s cluster health cog
         from cogs.cluster_status_cog import ClusterStatusCog
         await self.add_cog(ClusterStatusCog(self))
+
+        # Raid intel / population analytics cog
+        from cogs.raid_intel_cog import RaidIntelCog
+        await self.add_cog(RaidIntelCog(self))
 
         await self.tree.sync()
         print(
