@@ -136,7 +136,7 @@ class HelpCog(commands.Cog):
                 "Alpha-tier PvP & PvE intelligence suite for ARK: Survival Ascended.\n"
                 "All commands support autocomplete — start typing to see options."
             ),
-            color=discord.Color(0x2C3E50),
+            color=discord.Color.random(),
             timestamp=datetime.now(timezone.utc),
         )
         embed.set_footer(text="Designed by pwnedByJT  |  ARKintel  |  github.com/pwnedByJT/ARKintel")

@@ -59,7 +59,7 @@ def _build_raid_embed(result: dict) -> discord.Embed:
     embed = discord.Embed(
         title=f"Raid Calc — {structure['display_name']}  x{quantity}",
         description=f"{structure['notes']}",
-        color=discord.Color(0xE74C3C),
+        color=discord.Color.random(),
         timestamp=datetime.now(timezone.utc),
     )
     embed.set_footer(text="Designed by pwnedByJT  |  ARKintel  |  Verify damage values in-game")

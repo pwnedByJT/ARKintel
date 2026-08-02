@@ -53,7 +53,7 @@ def _build_recipe_embed(data: dict) -> discord.Embed:
     embed = discord.Embed(
         title=f"Recipe — {data['display_name']}",
         description=f"Crafted in: **{data['crafted_in']}**",
-        color=discord.Color(data["color"]),
+        color=discord.Color.random(),
         timestamp=datetime.now(timezone.utc),
     )
     embed.set_footer(text="Designed by pwnedByJT  |  ARKintel  |  Verify quantities in-game")
