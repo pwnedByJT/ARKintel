@@ -244,6 +244,8 @@ The pipeline runs three steps in sequence:
 
 The workflow file lives at `.github/workflows/deploy.yml`. The self-hosted runner must have `docker` installed, passwordless `sudo` for `k3s ctr`, and `KUBECONFIG` pointing at `/etc/rancher/k3s/k3s.yaml`.
 
+**Status: Operational.** The self-hosted runner is active on the Raspberry Pi and the full pipeline — build, import, and rollout — has been verified end-to-end. New commits to `main` deploy automatically with no manual intervention required.
+
 ---
 
 ## License
