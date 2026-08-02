@@ -1,0 +1,39 @@
+name: Deploy to K3s
+
+on:
+  push:
+    branches:
+      - main
+
+# Prevent concurrent deploys — if a second push lands while a deploy is
+# running, queue it; don't cancel the in-flight one mid-rollout.
+concurrency:
+  group: deploy-arkintel
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build → Import → Rollout
+    runs-on: self-hosted
+
+    # KUBECONFIG must be readable by the runner user.
+    # See runner setup instructions: copy /etc/rancher/k3s/k3s.yaml to
+    # ~/kubeconfig and chmod 600 it, then set this env var.
+    env:
+      KUBECONFIG: /home/runner/.kube/config
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t arkintel:latest .
+
+      - name: Import image into K3s containerd store
+        run: docker save arkintel:latest | sudo k3s ctr images import -
+
+      - name: Rolling restart deployment
+        run: kubectl rollout restart deployment/arkintel
+
+      - name: Verify rollout status
+        run: kubectl rollout status deployment/arkintel --timeout=60s

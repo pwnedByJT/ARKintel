@@ -1,0 +1,32 @@
+# Secrets — never bake the Discord token into an image layer
+.env
+
+# Git history
+.git
+.gitignore
+.github
+
+# Editor / IDE
+.vscode
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+
+# Runtime state files — these are written by the bot at runtime and
+# must NOT be baked in; they live on a hostPath volume in production.
+favorites.json
+monitors.json
+pop_alerts.json
+
+# SQLite database — same reason as above
+*.db
+
+# Tests and dev tooling
+tests/
+pytest.ini
+
+# Misc generated files
+arkintel_diagram.html

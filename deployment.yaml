@@ -1,0 +1,71 @@
+# ARKintel — K3s Deployment Manifest
+#
+# Prerequisites before applying:
+#   kubectl apply -f k8s/rbac.yaml
+#   kubectl create secret generic arkintel-env --from-env-file=.env
+#
+# Deploy:
+#   docker build -t arkintel:latest .
+#   docker save arkintel:latest | sudo k3s ctr images import -
+#   kubectl apply -f deployment.yaml
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: arkintel
+  namespace: default
+  labels:
+    app: arkintel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: arkintel
+  template:
+    metadata:
+      labels:
+        app: arkintel
+    spec:
+      serviceAccountName: arkintel
+
+      containers:
+        - name: arkintel
+          image: arkintel:latest
+
+          # ----------------------------------------------------------------
+          # imagePullPolicy: IfNotPresent
+          #
+          # DO NOT use Always — arkintel:latest is imported directly into the
+          # K3s containerd store via `docker save | k3s ctr images import`.
+          # There is no external registry. Always → ImagePullBackOff.
+          # IfNotPresent uses the locally imported image; Never also works
+          # but disallows any future registry fallback.
+          # ----------------------------------------------------------------
+          imagePullPolicy: IfNotPresent
+
+          envFrom:
+            - secretRef:
+                name: arkintel-env
+
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+
+          volumeMounts:
+            - name: runtime-data
+              mountPath: /app/runtime
+
+      # --------------------------------------------------------------------
+      # Persistent runtime data (JSON state + SQLite) lives on the host so
+      # it survives rolling restarts and redeployments.
+      # Create the directory first:  sudo mkdir -p /opt/arkintel/data
+      # --------------------------------------------------------------------
+      volumes:
+        - name: runtime-data
+          hostPath:
+            path: /opt/arkintel/data
+            type: DirectoryOrCreate
