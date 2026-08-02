@@ -89,7 +89,7 @@ def _build_tame_embed(tame_data: dict) -> discord.Embed:
     embed = discord.Embed(
         title=f"ARK: SA Endgame Leveling Guide - {tame_data['display_name']}",
         description=tame_data["meta"],
-        color=discord.Color(tame_data["color"]),
+        color=discord.Color.random(),
         timestamp=datetime.now(timezone.utc),
     )
     embed.set_footer(
