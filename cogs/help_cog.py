@@ -108,6 +108,19 @@ HELP_SECTIONS = [
         ),
     },
     {
+        "name": "📡  ArkStatus Analytics",
+        "value": (
+            "```"
+            "/targets [search:<prefix>] [min_avg:<int>] [limit:<int>]\n"
+            "  Powered by ArkStatus API. Finds servers matching a name search,\n"
+            "  filters by 7-day average pop (default >= 3), then shows the\n"
+            "  quietest UTC/PT hour for each — ideal offline raid windows.\n"
+            "  Requires ARK_STATUS_API_KEY in .env.\n"
+            "  Rate-limited to 5 history calls/min (free tier) — limit capped at 5."
+            "```"
+        ),
+    },
+    {
         "name": "🎯  Raid Intel",
         "value": (
             "```"

@@ -34,6 +34,7 @@ Stop alt-tabbing. Stop Googling recipes. Stop guessing how many C4 you need. **J
 - Personal server favorites with live status
 - Live K3s cluster health — Pod status, restarts, uptime, node, resource usage
 - Raid intel — weekly population analytics to surface servers with predictable low-pop offline windows
+- ArkStatus analytics (`/targets`) — API-powered raid target finder across thousands of servers: search by name, filter by 7-day avg, surface the quietest raid hour
 - Player intel — tag player identities (ID, tribe, server, notes) and look up their full change history
 
 ---
@@ -80,6 +81,15 @@ Stop alt-tabbing. Stop Googling recipes. Stop guessing how many C4 you need. **J
 | `/fav_list` | See all your saved servers with live status |
 | `/fav_remove server_number:<name>` | Drop a server from your list |
 | `/console` | The full ASA optimization command string — one copy-paste to kill shadows, foliage, fog, bloom |
+
+### ArkStatus Analytics
+| Command | Description |
+|---|---|
+| `/targets [search] [min_avg] [limit]` | API-powered raid target finder. Searches ArkStatus for servers by name prefix, filters by 7-day average population, then shows the quietest UTC/PT hour per server. Requires `ARK_STATUS_API_KEY` in `.env`. |
+
+> **Setup:** Add `ARK_STATUS_API_KEY=ark_your_key_here` to your `.env`. Get a key at [arkstatus.com/settings](https://arkstatus.com/settings#api-key-section).
+
+> **API limitation (confirmed):** ArkStatus exposes no per-player data — only aggregate counts. Individual player names, EOS/Steam IDs, and session times are not available via any public ARK:SA API. Use `/tag-player` for manual player identity tracking.
 
 ### Player Intel
 | Command | Description |
