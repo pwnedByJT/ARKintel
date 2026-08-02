@@ -33,6 +33,7 @@ Stop alt-tabbing. Stop Googling recipes. Stop guessing how many C4 you need. **J
 - Console optimization string — one copy-paste to kill shadows, fog, bloom, and foliage
 - Personal server favorites with live status
 - Live K3s cluster health — Pod status, restarts, uptime, node, resource usage
+- Raid intel — weekly population analytics to surface servers with predictable low-pop offline windows
 
 ---
 
@@ -78,6 +79,11 @@ Stop alt-tabbing. Stop Googling recipes. Stop guessing how many C4 you need. **J
 | `/fav_list` | See all your saved servers with live status |
 | `/fav_remove server_number:<name>` | Drop a server from your list |
 | `/console` | The full ASA optimization command string — one copy-paste to kill shadows, foliage, fog, bloom |
+
+### Raid Intel
+| Command | Description |
+|---|---|
+| `/raidwindow [min_avg:<int>]` | Scan monitored servers for low-pop offline windows over the past 7 days. Ranks by weekly avg; reports quietest UTC/PT hour per server. Only servers tracked with `/monitor` have history. |
 
 ### Infrastructure
 | Command | Description |

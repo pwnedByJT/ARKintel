@@ -93,6 +93,18 @@ HELP_SECTIONS = [
         ),
     },
     {
+        "name": "🎯  Raid Intel",
+        "value": (
+            "```"
+            "/raidwindow [min_avg:<int>]\n"
+            "  Scan monitored servers for low-population windows over the past 7 days.\n"
+            "  Qualifies servers with weekly avg pop > min_avg (default: 3).\n"
+            "  Reports: weekly avg, quietest UTC/PT hour, avg pop during that window.\n"
+            "  Note: only servers tracked via /monitor have population history."
+            "```"
+        ),
+    },
+    {
         "name": "🖥️  Infrastructure",
         "value": (
             "```"
