@@ -93,6 +93,17 @@ HELP_SECTIONS = [
         ),
     },
     {
+        "name": "🖥️  Infrastructure",
+        "value": (
+            "```"
+            "/cluster-status\n"
+            "  Live K3s Pod health: name, namespace, status, restarts,\n"
+            "  uptime, cluster IP, node, and memory/CPU limits.\n"
+            "  Requires RBAC setup — see k8s/rbac.yaml in the repo."
+            "```"
+        ),
+    },
+    {
         "name": "⭐  Favorites & Utilities",
         "value": (
             "```"

@@ -512,10 +512,14 @@ class Bot(commands.Bot):
         from cogs.help_cog import HelpCog
         await self.add_cog(HelpCog(self))
 
+        # K3s cluster health cog
+        from cogs.cluster_status_cog import ClusterStatusCog
+        await self.add_cog(ClusterStatusCog(self))
+
         await self.tree.sync()
         print(
             "System Online | ARKintel Enterprise | "
-            "Commands: /tame-stats /imprint /recipe /raid-calc /boss-check /ark-help"
+            "Commands: /tame-stats /imprint /recipe /raid-calc /boss-check /cluster-status /ark-help"
         )
 
 if __name__ == "__main__":
