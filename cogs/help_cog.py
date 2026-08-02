@@ -93,6 +93,21 @@ HELP_SECTIONS = [
         ),
     },
     {
+        "name": "🕵️  Player Intel",
+        "value": (
+            "```"
+            "/tag-player player_id:<id> display_name:<name> main_server:<srv> tribe_tag:<tag> [note:<text>]\n"
+            "  Log or update a player identity. Accepts any platform ID\n"
+            "  (EOS / Steam / Xbox / PSN) entered manually.\n"
+            "  Every update is appended to the player's change history.\n"
+            "\n"
+            "/player-info query:<id_or_name>\n"
+            "  Look up a tagged player's current record and full tag history.\n"
+            "  Supports autocomplete — start typing name or ID."
+            "```"
+        ),
+    },
+    {
         "name": "🎯  Raid Intel",
         "value": (
             "```"
