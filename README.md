@@ -34,6 +34,7 @@ Stop alt-tabbing. Stop Googling recipes. Stop guessing how many C4 you need. **J
 - Personal server favorites with live status
 - Live K3s cluster health — Pod status, restarts, uptime, node, resource usage
 - Raid intel — weekly population analytics to surface servers with predictable low-pop offline windows
+- Player intel — tag player identities (ID, tribe, server, notes) and look up their full change history
 
 ---
 
@@ -79,6 +80,14 @@ Stop alt-tabbing. Stop Googling recipes. Stop guessing how many C4 you need. **J
 | `/fav_list` | See all your saved servers with live status |
 | `/fav_remove server_number:<name>` | Drop a server from your list |
 | `/console` | The full ASA optimization command string — one copy-paste to kill shadows, foliage, fog, bloom |
+
+### Player Intel
+| Command | Description |
+|---|---|
+| `/tag-player player_id:<id> display_name:<name> main_server:<srv> tribe_tag:<tag> [note]` | Log or update a player identity (EOS/Steam/Xbox/PSN ID, tribe, server, notes). Every update is appended to the player's change log. |
+| `/player-info query:<id_or_name>` | Look up a tagged player's current record and tagging history. Supports autocomplete. |
+
+> **API note:** The official ASA server list exposes no per-player data. A live `/playerlist` command is not implemented because Wildcard's API returns only aggregate counts and A2S queries to official servers are blocked. Player tagging is manual — use IDs you encounter in-game.
 
 ### Raid Intel
 | Command | Description |

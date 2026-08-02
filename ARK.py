@@ -53,11 +53,45 @@ class DatabaseEngine:
 
     async def initialize(self):
         async with aiosqlite.connect(self.db_path) as db:
-            await db.execute('''CREATE TABLE IF NOT EXISTS server_stats 
-                                (id INTEGER PRIMARY KEY AUTOINCREMENT, server_name TEXT, 
-                                player_count INTEGER, max_players INTEGER, 
+            # --- population-stats table (existing) ---
+            await db.execute('''CREATE TABLE IF NOT EXISTS server_stats
+                                (id INTEGER PRIMARY KEY AUTOINCREMENT, server_name TEXT,
+                                player_count INTEGER, max_players INTEGER,
                                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
             await db.execute('CREATE INDEX IF NOT EXISTS idx_server_time ON server_stats(server_name, timestamp)')
+
+            # --- player identity / tagging tables ---
+            await db.execute('''
+                CREATE TABLE IF NOT EXISTS tracked_players (
+                    player_id       TEXT PRIMARY KEY,
+                    display_name    TEXT NOT NULL,
+                    main_server     TEXT,
+                    tribe_tag       TEXT,
+                    custom_note     TEXT,
+                    tagged_by       TEXT,
+                    first_tagged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    last_updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    tag_count       INTEGER  DEFAULT 1
+                )
+            ''')
+            await db.execute('CREATE INDEX IF NOT EXISTS idx_player_name ON tracked_players(display_name)')
+
+            # Append-only history — every /tag-player call writes a row so
+            # /player-info can show a real change log (tribe/server/name updates).
+            await db.execute('''
+                CREATE TABLE IF NOT EXISTS tag_history (
+                    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                    player_id    TEXT    NOT NULL,
+                    display_name TEXT    NOT NULL,
+                    main_server  TEXT,
+                    tribe_tag    TEXT,
+                    custom_note  TEXT,
+                    tagged_by    TEXT,
+                    tagged_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            await db.execute('CREATE INDEX IF NOT EXISTS idx_history_player ON tag_history(player_id, tagged_at)')
+
             await db.commit()
 
     async def record_stats(self, name: str, current: int, limit: int):
@@ -144,6 +178,92 @@ class DatabaseEngine:
             ) as cursor:
                 row = await cursor.fetchone()
                 return dict(row) if row else None
+
+    # --- PLAYER INTELLIGENCE ---
+
+    async def upsert_player_tag(
+        self, player_id: str, display_name: str,
+        main_server: str | None, tribe_tag: str | None,
+        custom_note: str | None, tagged_by: str
+    ) -> bool:
+        """
+        Insert or update a player tag. Returns True if a new record was created,
+        False if an existing one was updated. Also appends a row to tag_history
+        so /player-info can show a real change log over time.
+        """
+        async with aiosqlite.connect(self.db_path) as db:
+            async with db.execute(
+                "SELECT tag_count FROM tracked_players WHERE player_id = ?", (player_id,)
+            ) as cur:
+                existing = await cur.fetchone()
+
+            if existing:
+                await db.execute(
+                    """UPDATE tracked_players
+                       SET display_name=?, main_server=?, tribe_tag=?, custom_note=?,
+                           tagged_by=?, last_updated_at=CURRENT_TIMESTAMP,
+                           tag_count=tag_count+1
+                       WHERE player_id=?""",
+                    (display_name, main_server, tribe_tag, custom_note, tagged_by, player_id)
+                )
+                is_new = False
+            else:
+                await db.execute(
+                    """INSERT INTO tracked_players
+                       (player_id, display_name, main_server, tribe_tag, custom_note, tagged_by)
+                       VALUES (?,?,?,?,?,?)""",
+                    (player_id, display_name, main_server, tribe_tag, custom_note, tagged_by)
+                )
+                is_new = True
+
+            # Always append to history
+            await db.execute(
+                """INSERT INTO tag_history
+                   (player_id, display_name, main_server, tribe_tag, custom_note, tagged_by)
+                   VALUES (?,?,?,?,?,?)""",
+                (player_id, display_name, main_server, tribe_tag, custom_note, tagged_by)
+            )
+            await db.commit()
+        return is_new
+
+    async def get_player(self, player_id: str) -> dict | None:
+        """Exact lookup by player_id."""
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                "SELECT * FROM tracked_players WHERE player_id = ?", (player_id,)
+            ) as cur:
+                row = await cur.fetchone()
+                return dict(row) if row else None
+
+    async def search_players(self, query: str, limit: int = 25) -> list:
+        """Search by player_id (prefix) or display_name (substring), for autocomplete."""
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            q = query.strip()
+            async with db.execute(
+                """SELECT player_id, display_name, tribe_tag, main_server
+                   FROM tracked_players
+                   WHERE player_id LIKE ? OR display_name LIKE ?
+                   ORDER BY last_updated_at DESC
+                   LIMIT ?""",
+                (f'{q}%', f'%{q}%', limit)
+            ) as cur:
+                rows = await cur.fetchall()
+                return [dict(r) for r in rows]
+
+    async def get_tag_history(self, player_id: str, limit: int = 5) -> list:
+        """Most recent tag_history entries for a player."""
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                """SELECT display_name, main_server, tribe_tag, custom_note, tagged_by, tagged_at
+                   FROM tag_history WHERE player_id = ?
+                   ORDER BY tagged_at DESC LIMIT ?""",
+                (player_id, limit)
+            ) as cur:
+                rows = await cur.fetchall()
+                return [dict(r) for r in rows]
 
 # --- UI UTILITIES ---
 class EmbedFactory:
@@ -571,6 +691,10 @@ class Bot(commands.Bot):
         # Raid intel / population analytics cog
         from cogs.raid_intel_cog import RaidIntelCog
         await self.add_cog(RaidIntelCog(self))
+
+        # Player identity tagging and intel cog
+        from cogs.player_intel_cog import PlayerIntelCog
+        await self.add_cog(PlayerIntelCog(self))
 
         await self.tree.sync()
         print(
