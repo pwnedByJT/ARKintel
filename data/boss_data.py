@@ -218,6 +218,7 @@ BOSS_DATABASE: dict[str, dict] = {
 
 BOSS_ALIASES: dict[str, str] = {
     "broodmother": "broodmother",
+    "broodmother lysrix": "broodmother",
     "brood": "broodmother",
     "spider": "broodmother",
     "lysrix": "broodmother",
