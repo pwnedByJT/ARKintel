@@ -696,6 +696,10 @@ class Bot(commands.Bot):
         from cogs.player_intel_cog import PlayerIntelCog
         await self.add_cog(PlayerIntelCog(self))
 
+        # ArkStatus-powered server analytics cog
+        from cogs.ark_analytics_cog import ArkAnalyticsCog
+        await self.add_cog(ArkAnalyticsCog(self))
+
         await self.tree.sync()
         print(
             "System Online | ARKintel Enterprise | "
