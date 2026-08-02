@@ -232,6 +232,20 @@ Pulled live from Studio Wildcard's official CDN:
 
 ---
 
+## CI/CD & Deployment
+
+Every push to `main` triggers an automated deployment via **GitHub Actions** running on a self-hosted runner on the Raspberry Pi.
+
+The pipeline runs three steps in sequence:
+
+1. **Build** — `docker build -t arkintel:latest .`
+2. **Import** — `docker save arkintel:latest | sudo k3s ctr images import -` pushes the image directly into K3s's containerd store (no external registry needed)
+3. **Rollout** — `sudo kubectl rollout restart deployment/arkintel` triggers a rolling restart; `kubectl rollout status` confirms the new pod is healthy within 60 seconds
+
+The workflow file lives at `.github/workflows/deploy.yml`. The self-hosted runner must have `docker` installed, passwordless `sudo` for `k3s ctr`, and `KUBECONFIG` pointing at `/etc/rancher/k3s/k3s.yaml`.
+
+---
+
 ## License
 
 MIT — use it, fork it, build on it.
