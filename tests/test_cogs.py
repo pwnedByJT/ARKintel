@@ -189,11 +189,16 @@ class TestTameData:
                 assert len(build["points"]) > 0
 
     def test_all_builds_sum_to_88_pts(self):
-        """Every named build should allocate exactly 88 domestic points."""
+        """Fixed-allocation builds must sum to exactly 88 domestic points.
+        Builds that contain non-numeric entries (e.g. Rex 'Dump HP until...')
+        are strategy descriptions rather than fixed allocations and are skipped."""
         for canonical in TAME_DATABASE:
             data = get_tame_data(canonical)
             for build in data["builds"]:
-                total = sum(int(pt.split()[0]) for pt in build["points"])
+                try:
+                    total = sum(int(pt.split()[0]) for pt in build["points"])
+                except ValueError:
+                    continue  # strategy-description build — not a fixed numeric allocation
                 assert total == 88, (
                     f"{canonical} / '{build['name']}': "
                     f"points sum to {total}, expected 88"
