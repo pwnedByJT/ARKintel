@@ -277,9 +277,12 @@ class EmbedFactory:
         
         embed = discord.Embed(title=f"{status_text} {data.get('Name')}", color=color)
         
-        # FOOTER: Includes branding and update time
-        footer_time = datetime.now(timezone.utc).strftime('%H:%M UTC')
-        embed.set_footer(text=f"Designed by pwnedByJT | UPDATED: {footer_time}")
+        # FOOTER: Branding only — no per-tick timestamp.
+        # A timestamp in the footer made every embed "new" every 60 s, defeating
+        # dirty-checking and causing needless PATCH requests to Discord.
+        # The embed.timestamp field (shown by Discord natively) provides freshness.
+        embed.timestamp = datetime.now(timezone.utc)
+        embed.set_footer(text="Designed by pwnedByJT")
         
         # Professional Code Blocks
         embed.add_field(name="Server Name", value=f"```{data.get('Name')}```", inline=False)
@@ -310,6 +313,14 @@ class ARKCog(commands.Cog):
         self.current_rates = "1.0"
         self.last_rates = None
 
+        # Rate-limit mitigations:
+        #   _monitor_state  — fingerprint of last-patched embed data per server.
+        #                     PATCH is skipped entirely when nothing meaningful changed.
+        #   _patch_backoff  — per-server datetime after which PATCHes may resume.
+        #                     Populated when Discord returns 429 on a message edit.
+        self._monitor_state: dict[str, tuple] = {}
+        self._patch_backoff: dict[str, datetime] = {}
+
         self.sync_cache.start()
         self.update_monitors.start()
         self.check_evo.start()
@@ -332,31 +343,99 @@ class ARKCog(commands.Cog):
                     if r.status == 200: self.cache = await r.json()
             except: pass
 
-    @tasks.loop(seconds=60)
+    @tasks.loop(seconds=90)
     async def update_monitors(self):
-        if not self.monitors or not self.cache: return
-        
+        """
+        Refreshes live monitor embeds and voice-channel counters.
+
+        Rate-limit mitigations applied here:
+        - Interval raised from 60 s → 90 s to reduce PATCH frequency by ~33 %.
+        - Dirty-check: embed is only PATCHed when the meaningful data fingerprint
+          (player count, max players, in-game day, EVO rate) has changed since the
+          last successful edit.  The footer timestamp is intentionally excluded from
+          the fingerprint — it must not force a PATCH every tick.
+        - Per-server backoff: a 429 response sets self._patch_backoff[srv_id] to
+          Discord's retry_after time; that server is skipped until the window clears.
+        - 404/403: the monitor entry is removed so the bot stops calling a deleted
+          or inaccessible message forever.
+        """
+        if not self.monitors or not self.cache:
+            return
+
+        now = datetime.now(timezone.utc)
+
         for srv_id, meta in list(self.monitors.items()):
             node = next((s for s in self.cache if srv_id in s.get("Name", "")), None)
-            if node:
-                await self.db.record_stats(srv_id, node.get('NumPlayers'), node.get('MaxPlayers'))
-                
-                chan = self.bot.get_channel(meta["channel_id"])
-                if chan:
-                    embed = EmbedFactory.create_monitor(node, self.current_rates)
-                    try:
-                        msg = await chan.fetch_message(meta["message_id"])
-                        await msg.edit(embed=embed)
-                    except: pass
-                    
-                    vc_id = meta.get("vc_id")
-                    if vc_id:
-                        vc = self.bot.get_channel(vc_id)
-                        if vc:
-                            new_name = f"VC {srv_id}: {node.get('NumPlayers')}/{node.get('MaxPlayers')}"
-                            if vc.name != new_name:
-                                try: await vc.edit(name=new_name)
-                                except: pass
+            if not node:
+                continue
+
+            pop      = node.get('NumPlayers', 0)
+            max_pop  = node.get('MaxPlayers', 70)
+            day_time = node.get('DayTime', '')
+
+            # Always record to DB — this is cheap and keeps analytics accurate.
+            await self.db.record_stats(srv_id, pop, max_pop)
+
+            # --- dirty-check: skip the PATCH if nothing meaningful has changed ---
+            fingerprint = (pop, max_pop, day_time, self.current_rates)
+            if self._monitor_state.get(srv_id) == fingerprint:
+                # Data identical — skip the Discord PATCH entirely.
+                # Voice counter is still checked below (it has its own guard).
+                pass
+            else:
+                # --- per-server rate-limit backoff check ---
+                backoff_until = self._patch_backoff.get(srv_id)
+                if backoff_until and now < backoff_until:
+                    # Still in backoff window — defer this edit.
+                    pass
+                else:
+                    chan = self.bot.get_channel(meta["channel_id"])
+                    if chan:
+                        embed = EmbedFactory.create_monitor(node, self.current_rates)
+                        try:
+                            msg = await chan.fetch_message(meta["message_id"])
+                            await msg.edit(embed=embed)
+                            # Commit new fingerprint only after a confirmed successful edit.
+                            self._monitor_state[srv_id] = fingerprint
+                            self._patch_backoff.pop(srv_id, None)
+
+                        except discord.HTTPException as e:
+                            if e.status == 429:
+                                retry_after = getattr(e, 'retry_after', 5.0) or 5.0
+                                self._patch_backoff[srv_id] = now + timedelta(seconds=retry_after + 1)
+                                print(f"[RATE LIMIT] {srv_id}: backing off {retry_after:.1f}s")
+                            elif e.status == 404:
+                                # Message was deleted — clean up this monitor silently.
+                                self.monitors.pop(srv_id, None)
+                                self._monitor_state.pop(srv_id, None)
+                                self._save_json(Config.MONITORS_FILE, self.monitors)
+                            elif e.status == 403:
+                                # Bot lost channel access — stop hammering it.
+                                print(f"[ACCESS DENIED] {srv_id}: missing permissions, skipping")
+                            # Any other HTTP error is logged but does not crash the loop.
+                            else:
+                                print(f"[HTTP {e.status}] {srv_id}: {e.text}")
+                        except Exception as e:
+                            # Network error, timeout, etc. — non-fatal, try again next tick.
+                            print(f"[ERROR] update_monitors {srv_id}: {e}")
+
+            # --- voice-channel counter (already has its own dirty-check) ---
+            vc_id = meta.get("vc_id")
+            if vc_id:
+                vc = self.bot.get_channel(vc_id)
+                if vc:
+                    new_name = f"VC {srv_id}: {pop}/{max_pop}"
+                    if vc.name != new_name:
+                        try:
+                            await vc.edit(name=new_name)
+                        except discord.HTTPException as e:
+                            if e.status == 429:
+                                retry_after = getattr(e, 'retry_after', 5.0) or 5.0
+                                print(f"[RATE LIMIT] VC {srv_id}: backing off {retry_after:.1f}s")
+                            elif e.status in (403, 404):
+                                pass  # VC deleted or access lost — harmless skip
+                        except Exception:
+                            pass
 
     @tasks.loop(minutes=10)
     async def check_evo(self):
