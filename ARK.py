@@ -424,7 +424,7 @@ class ARKCog(commands.Cog):
             if vc_id:
                 vc = self.bot.get_channel(vc_id)
                 if vc:
-                    new_name = f"VC {srv_id}: {pop}/{max_pop}"
+                    new_name = f"{pop}/{max_pop} | {srv_id}"
                     if vc.name != new_name:
                         try:
                             await vc.edit(name=new_name)
@@ -516,23 +516,33 @@ class ARKCog(commands.Cog):
     @app_commands.autocomplete(server_number=server_autocomplete)
     async def monitor(self, itxn: discord.Interaction, server_number: str):
         await itxn.response.defer()
-        
+
         node = next((s for s in self.cache if server_number in s['Name']), None)
         if not node: return await itxn.followup.send("Server not found in API cache.")
 
+        pop     = node.get('NumPlayers', 0)
+        max_pop = node.get('MaxPlayers', 70)
+
         embed = EmbedFactory.create_monitor(node, self.current_rates)
-        msg = await itxn.followup.send(embed=embed)
-        
+        msg   = await itxn.followup.send(embed=embed)
+
         vc_id = None
         if itxn.guild:
-            cat = discord.utils.get(itxn.guild.categories, name="[ Ark ]") or itxn.channel.category
-            try:
-                vc = await itxn.guild.create_voice_channel(
-                    name=f"VC {server_number}: {node.get('NumPlayers')}/70", 
-                    category=cat
-                )
-                vc_id = vc.id
-            except: await itxn.followup.send("Failed to create Voice Channel (Check permissions).", ephemeral=True)
+            # Duplicate-VC guard: if a live voice channel already exists for this
+            # server, reuse its ID instead of spawning a second counter channel.
+            existing_vc_id = self.monitors.get(server_number, {}).get("vc_id")
+            existing_vc    = self.bot.get_channel(existing_vc_id) if existing_vc_id else None
+
+            if existing_vc:
+                vc_id = existing_vc.id
+            else:
+                cat     = discord.utils.get(itxn.guild.categories, name="[ Ark ]") or itxn.channel.category
+                vc_name = f"{pop}/{max_pop} | {server_number}"
+                try:
+                    vc    = await itxn.guild.create_voice_channel(name=vc_name, category=cat)
+                    vc_id = vc.id
+                except discord.HTTPException:
+                    await itxn.followup.send("Failed to create Voice Channel (check permissions).", ephemeral=True)
 
         self.monitors[server_number] = {"message_id": msg.id, "channel_id": itxn.channel_id, "vc_id": vc_id}
         self._save_json(Config.MONITORS_FILE, self.monitors)
